@@ -58,10 +58,10 @@ remove_clientid(ClientId) ->
 %%--------------------------------------------------------------------
 
 init(ClientList) ->
-    mnesia:create_table(?AUTH_CLIENTID_TAB, [
+    ok = emqttd_mnesia:create_table(?AUTH_CLIENTID_TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?AUTH_CLIENTID_TAB)}]),
-    emqttd_mnesia:copy_table(?AUTH_CLIENTID_TAB, disc_copies),
+    ok = emqttd_mnesia:copy_table(?AUTH_CLIENTID_TAB, disc_copies),
     Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
     {ok, []}.
