@@ -1,10 +1,21 @@
 %%-*- mode: erlang -*-
 %% emq_auth_clientid config mapping
-{mapping, "auth.client.$id", "emq_auth_clientid.client_list", [
+{mapping, "auth.client.$name.clientid", "emq_auth_clientid.client_list", [
+  {datatype, string}
+]}.
+{mapping, "auth.client.$name.password", "emq_auth_clientid.client_list", [
   {datatype, string}
 ]}.
 
 {translation, "emq_auth_clientid.client_list", fun(Conf) ->
   ClientList = cuttlefish_variable:filter_by_prefix("auth.client", Conf),
-  [{Id, Passwd} || {["auth", "client", Id], Passwd} <- ClientList]
+  lists:foldl(
+  	fun(Client, AccIn) ->
+  		case Client of
+  			{["auth", "client", Name, "clientid"], ClientId} ->
+  				[{ClientId, cuttlefish:conf_get("auth.client." ++ Name ++ ".password", Conf)} | AccIn];
+  			_ ->
+  				AccIn
+  		end
+  	end, [], ClientList)
 end}.
