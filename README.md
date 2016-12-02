@@ -16,7 +16,8 @@ Configuration
 etc/emq_auth_clientid.conf:
 
 ```
-auth.clientid.$id=$password
+##auth.client.$N.clientid = clientid
+##auth.client.$N.password = passwd
 ```
 
 Load the Plugin
