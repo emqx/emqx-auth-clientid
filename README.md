@@ -1,7 +1,7 @@
 emq_auth_clientid
 =================
 
-ClientId Authentication Plugin
+Authentication with ClientId and Password
 
 Build
 -----
