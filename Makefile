@@ -1,6 +1,6 @@
 PROJECT = emq_auth_clientid
 PROJECT_DESCRIPTION = Authentication with ClientId/Password
-PROJECT_VERSION = 2.0.1
+PROJECT_VERSION = 2.0.2
 
 BUILD_DEPS = emqttd
 dep_emqttd = git https://github.com/emqtt/emqttd master
