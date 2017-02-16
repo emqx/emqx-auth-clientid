@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2012-2017 Feng Lee <feng@emqtt.io>.
+%% Copyright (c) 2013-2017 EMQ Enterprise, Inc. (http://emqtt.io)
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 -module(emq_auth_clientid).
 
+-behaviour(emqttd_auth_mod).
+
 -include_lib("emqttd/include/emqttd.hrl").
 
 -export([add_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
-
--behaviour(emqttd_auth_mod).
 
 %% emqttd_auth_mod callbacks
 -export([init/1, check/3, description/0]).

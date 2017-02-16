@@ -35,5 +35,5 @@ Apache License Version 2.0
 Author
 ------
 
-feng at emqtt.io
+Feng at emqtt.io
 
