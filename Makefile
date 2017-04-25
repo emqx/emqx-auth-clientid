@@ -1,11 +1,11 @@
 PROJECT = emq_auth_clientid
 PROJECT_DESCRIPTION = Authentication with ClientId/Password
-PROJECT_VERSION = 2.1.2
+PROJECT_VERSION = 2.2
 
 NO_AUTOPATCH = cuttlefish
 
 BUILD_DEPS = emqttd cuttlefish
-dep_emqttd = git https://github.com/emqtt/emqttd emq20
+dep_emqttd = git https://github.com/emqtt/emqttd emq22
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 ERLC_OPTS += +'{parse_transform, lager_transform}'

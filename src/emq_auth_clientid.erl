@@ -76,7 +76,7 @@ check(_Client, undefined, _) ->
     {error, password_undefined};
 check(#mqtt_client{client_id = ClientId}, Password, _) ->
     case mnesia:dirty_read(?AUTH_CLIENTID_TAB, ClientId) of
-        [] -> {error, clientid_not_found};
+        [] -> ignore;
         [#?AUTH_CLIENTID_TAB{password = Password}]  -> ok; %% TODO: plaintext??
         _ -> {error, password_error}
     end.
