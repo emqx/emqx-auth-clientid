@@ -32,7 +32,7 @@ emq_auth_clientid_api(_Config) ->
     emq_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
     ok = emqttd_access_control:auth(User1, <<"password">>),
     {atomic, ok} = emq_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
-    {error, clientid_not_found} = emqttd_access_control:auth(User1, <<"password">>).
+    ok = emqttd_access_control:auth(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emq_auth_clientid),
