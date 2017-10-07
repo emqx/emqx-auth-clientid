@@ -14,20 +14,18 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_clientid).
+-module(emqx_auth_clientid).
 
--behaviour(emqttd_auth_mod).
+-behaviour(emqx_auth_mod).
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -export([add_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
-%% emqttd_auth_mod callbacks
+%% emqx_auth_mod callbacks
 -export([init/1, check/3, description/0]).
 
--define(AUTH_CLIENTID_TAB, mqtt_auth_clientid).
-
--record(?AUTH_CLIENTID_TAB, {client_id, password}).
+-record(mqtt_auth_clientid, {client_id, password}).
 
 %%--------------------------------------------------------------------
 %% API
@@ -42,26 +40,26 @@ add_clientid(ClientId, Password) ->
 %% @doc Lookup clientid
 -spec(lookup_clientid(binary()) -> list(#mqtt_auth_clientid{})).
 lookup_clientid(ClientId) ->
-    mnesia:dirty_read(?AUTH_CLIENTID_TAB, ClientId).
+    mnesia:dirty_read(mqtt_auth_clientid, ClientId).
 
 %% @doc Lookup all clientids
 -spec(all_clientids() -> list(binary())).
-all_clientids() -> mnesia:dirty_all_keys(?AUTH_CLIENTID_TAB).
+all_clientids() -> mnesia:dirty_all_keys(mqtt_auth_clientid).
 
 %% @doc Remove clientid
 -spec(remove_clientid(binary()) -> {atomic, ok} | {aborted, any()}).
 remove_clientid(ClientId) ->
-    mnesia:transaction(fun mnesia:delete/1, [{?AUTH_CLIENTID_TAB, ClientId}]).
+    mnesia:transaction(fun mnesia:delete/1, [{mqtt_auth_clientid, ClientId}]).
 
 %%--------------------------------------------------------------------
-%% emqttd_auth_mod callbacks
+%% emqx_auth_mod callbacks
 %%--------------------------------------------------------------------
 
 init(ClientList) ->
-    ok = ekka_mnesia:create_table(?AUTH_CLIENTID_TAB, [
+    ok = ekka_mnesia:create_table(mqtt_auth_clientid, [
             {disc_copies, [node()]},
-            {attributes, record_info(fields, ?AUTH_CLIENTID_TAB)}]),
-    ok = ekka_mnesia:copy_table(?AUTH_CLIENTID_TAB, disc_copies),
+            {attributes, record_info(fields, mqtt_auth_clientid)}]),
+    ok = ekka_mnesia:copy_table(mqtt_auth_clientid, disc_copies),
     Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
     {ok, []}.
@@ -75,9 +73,9 @@ check(#mqtt_client{client_id = undefined}, _Password, _) ->
 check(_Client, undefined, _) ->
     {error, password_undefined};
 check(#mqtt_client{client_id = ClientId}, Password, _) ->
-    case mnesia:dirty_read(?AUTH_CLIENTID_TAB, ClientId) of
+    case mnesia:dirty_read(mqtt_auth_clientid, ClientId) of
         [] -> ignore;
-        [#?AUTH_CLIENTID_TAB{password = Password}]  -> ok; %% TODO: plaintext??
+        [#mqtt_auth_clientid{password = Password}]  -> ok; %% TODO: plaintext??
         _ -> {error, password_error}
     end.
 

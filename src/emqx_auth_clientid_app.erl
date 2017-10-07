@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_clientid_app).
+-module(emqx_auth_clientid_app).
 
 -behaviour(application).
 
@@ -24,15 +24,15 @@
 
 -export([init/1]).
 
--define(APP, emq_auth_clientid).
+-define(APP, emqx_auth_clientid).
 
 start(_Type, _Args) ->
     ClientList = application:get_env(?APP, client_list, []),
-    emqttd_access_control:register_mod(auth, ?APP, ClientList),
+    emqx_access_control:register_mod(auth, ?APP, ClientList),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqttd_access_control:unregister_mod(auth, ?APP).
+    emqx_access_control:unregister_mod(auth, ?APP).
 
 %%--------------------------------------------------------------------
 %% Dummy Supervisor
