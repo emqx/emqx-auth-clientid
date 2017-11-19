@@ -1,4 +1,4 @@
-emq_auth_clientid
+emq-auth-clientid
 =================
 
 Authentication with ClientId and Password
@@ -35,5 +35,5 @@ Apache License Version 2.0
 Author
 ------
 
-Feng at emqtt.io
+EMQ X Team.
 
