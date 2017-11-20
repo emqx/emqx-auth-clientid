@@ -1,6 +1,6 @@
 PROJECT = emqx_auth_clientid
 PROJECT_DESCRIPTION = EMQ X Authentication with ClientId/Password
-PROJECT_VERSION = 2.4
+PROJECT_VERSION = 2.3.0
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git https://github.com/emqtt/emqttd X
