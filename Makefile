@@ -1,6 +1,6 @@
 PROJECT = emq_auth_clientid
 PROJECT_DESCRIPTION = Authentication with ClientId/Password
-PROJECT_VERSION = 2.3.5
+PROJECT_VERSION = 2.3.6
 
 NO_AUTOPATCH = cuttlefish
 
