@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2017 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_clientid_SUITE).
 
@@ -27,9 +25,8 @@
 all() ->
     [{group, emqx_auth_clientid}].
 
-groups() -> 
-    [{emqx_auth_clientid, [sequence], 
-      [emqx_auth_clientid_api, change_config]}].
+groups() ->
+    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, change_config]}].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -44,7 +41,7 @@ end_per_suite(_Config) ->
 emqx_auth_clientid_api(_Config) ->
     {atomic, ok} = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
     User1 = #mqtt_client{client_id = <<"emq_auth_clientid">>},
-    [{mqtt_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] = 
+    [{mqtt_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
     ok = emqx_access_control:auth(User1, <<"password">>),
     {atomic, ok} = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
