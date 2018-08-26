@@ -1,8 +1,10 @@
 %%-*- mode: erlang -*-
 %% emqx_auth_clientid config mapping
+
 {mapping, "auth.client.$id.clientid", "emqx_auth_clientid.client_list", [
   {datatype, string}
 ]}.
+
 {mapping, "auth.client.$id.password", "emqx_auth_clientid.client_list", [
   {datatype, string}
 ]}.
