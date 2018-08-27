@@ -20,8 +20,6 @@
 
 -include_lib("common_test/include/ct.hrl").
 
--record(mqtt_auth_clientid, {client_id, password}).
-
 all() ->
     [{group, emqx_auth_clientid}].
 
@@ -40,21 +38,22 @@ end_per_suite(_Config) ->
 
 emqx_auth_clientid_api(_Config) ->
     {atomic, ok} = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
-    User1 = #mqtt_client{client_id = <<"emq_auth_clientid">>},
-    [{mqtt_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] =
-    emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
-    ok = emqx_access_control:auth(User1, <<"password">>),
+    User1 = #{client_id => <<"emq_auth_clientid">>},
+    [{emqx_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] =
+        emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
+    ok = emqx_access_control:authenticate(User1, <<"password">>),
     {atomic, ok} = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
-    {error, clientid_not_found} = emqx_access_control:auth(User1, <<"password">>).
+    {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_clientid),
     application:set_env(emqx_auth_clientid, client_list, [{"id", "password"}, {"dev:devid", "passwd2"}]),
     application:start(emqx_auth_clientid),
-    User1 = #mqtt_client{client_id = <<"id">>},
-    User2 = #mqtt_client{client_id = <<"dev:devid">>},
-    ok = emqx_access_control:auth(User1, <<"password">>),
-    ok = emqx_access_control:auth(User2, <<"passwd2">>).
+    User1 = #{client_id => <<"id">>},
+    User2 = #{client_id => <<"dev:devid">>},
+    ok = emqx_access_control:authenticate(User1, <<"password">>),
+    {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
+    ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
 
 start_apps(App, DataDir) ->
     Schema = cuttlefish_schema:files([filename:join([DataDir, atom_to_list(App) ++ ".schema"])]),
@@ -62,5 +61,4 @@ start_apps(App, DataDir) ->
     NewConfig = cuttlefish_generator:map(Schema, Conf),
     Vals = proplists:get_value(App, NewConfig, []),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
-    application:ensure_all_started(App).
-
+    {ok, _} = application:ensure_all_started(App).
