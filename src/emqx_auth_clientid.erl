@@ -49,8 +49,10 @@ all_clientids() ->
 %% @doc Remove clientid
 -spec(remove_clientid(binary()) -> {atomic, ok} | {aborted, term()}).
 remove_clientid(ClientId) ->
-    mnesia:transaction(fun mnesia:delete/1, [{?TAB, ClientId}]).
+    ret(mnesia:transaction(fun mnesia:delete/1, [{?TAB, ClientId}])).
 
+ret({atomic, ok})     -> ok;
+ret({aborted, Error}) -> {error, Error}.
 %%------------------------------------------------------------------------------
 %% emqx_auth_mod callbacks
 %%------------------------------------------------------------------------------
@@ -81,4 +83,3 @@ check(#{client_id := ClientId}, Password, _) ->
 
 description() ->
     "ClientId Authentication Module".
-
