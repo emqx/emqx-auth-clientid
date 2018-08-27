@@ -42,7 +42,7 @@ emqx_auth_clientid_api(_Config) ->
     [{emqx_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] =
         emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
     ok = emqx_access_control:authenticate(User1, <<"password">>),
-    {atomic, ok} = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
+    ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
     {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
 
 change_config(_Config) ->
