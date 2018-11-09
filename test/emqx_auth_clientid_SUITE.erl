@@ -27,14 +27,45 @@ groups() ->
     [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, change_config]}].
 
 init_per_suite(Config) ->
-    DataDir = proplists:get_value(data_dir, Config),
-    [start_apps(App, DataDir) || App <- [emqx, emqx_auth_clientid]],
+    [start_apps(App, {SchemaFile, ConfigFile}) ||
+        {App, SchemaFile, ConfigFile}
+            <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
+                       local_path("deps/emqx/etc/emqx.conf")},
+                {emqx_auth_clientid, local_path("priv/emqx_auth_clientid.schema"),
+                                     local_path("etc/emqx_auth_clientid.conf")}]],
     Config.
 
 end_per_suite(_Config) ->
     application:stop(emqx_auth_clientid),
     application:stop(emqx).
 
+get_base_dir() ->
+    {file, Here} = code:is_loaded(?MODULE),
+    filename:dirname(filename:dirname(Here)).
+
+local_path(RelativePath) ->
+    filename:join([get_base_dir(), RelativePath]).
+
+start_apps(App, {SchemaFile, ConfigFile}) ->
+    read_schema_configs(App, {SchemaFile, ConfigFile}),
+    set_special_configs(App),
+    application:ensure_all_started(App).
+
+read_schema_configs(App, {SchemaFile, ConfigFile}) ->
+    ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
+    Schema = cuttlefish_schema:files([SchemaFile]),
+    Conf = conf_parse:file(ConfigFile),
+    NewConfig = cuttlefish_generator:map(Schema, Conf),
+    Vals = proplists:get_value(App, NewConfig, []),
+    [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
+
+set_special_configs(emqx) ->
+    application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, enable_acl_cache, false),
+    application:set_env(emqx, plugins_loaded_file,
+                        local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
+set_special_configs(_App) ->
+    ok.
 
 emqx_auth_clientid_api(_Config) ->
     {atomic, ok} = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
@@ -54,11 +85,3 @@ change_config(_Config) ->
     ok = emqx_access_control:authenticate(User1, <<"password">>),
     {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
     ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
-
-start_apps(App, DataDir) ->
-    Schema = cuttlefish_schema:files([filename:join([DataDir, atom_to_list(App) ++ ".schema"])]),
-    Conf = conf_parse:file(filename:join([DataDir, atom_to_list(App) ++ ".conf"])),
-    NewConfig = cuttlefish_generator:map(Schema, Conf),
-    Vals = proplists:get_value(App, NewConfig, []),
-    [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
-    {ok, _} = application:ensure_all_started(App).
