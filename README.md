@@ -1,5 +1,5 @@
-emq-auth-clientid
-=================
+emqx_auth_clientid
+==================
 
 Authentication with ClientId and Password
 
@@ -13,7 +13,7 @@ make && make tests
 Configuration
 -------------
 
-etc/emq_auth_clientid.conf:
+etc/emqx_auth_clientid.conf:
 
 ```
 ##auth.client.$N.clientid = clientid
@@ -24,7 +24,7 @@ Load the Plugin
 ---------------
 
 ```
-./bin/emqttd_ctl plugins load emq_auth_clientid
+./bin/emqx_ctl plugins load emqx_auth_clientid
 ```
 
 License

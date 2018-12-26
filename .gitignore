@@ -10,10 +10,11 @@ rel/example_project
 .rebar
 .erlang.mk/
 data/
-emq_auth_clientid.d
+emqx_auth_clientid.d
 .DS_Store
 cover/
 ct.coverdata
 eunit.coverdata
 logs/
 test/ct.cover.spec
+erlang.mk

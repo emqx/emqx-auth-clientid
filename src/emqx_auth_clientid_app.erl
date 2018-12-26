@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,9 +11,8 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
--module(emq_auth_clientid_app).
+-module(emqx_auth_clientid_app).
 
 -behaviour(application).
 
@@ -24,18 +22,18 @@
 
 -export([init/1]).
 
--define(APP, emq_auth_clientid).
+-define(APP, emqx_auth_clientid).
 
 start(_Type, _Args) ->
     ClientList = application:get_env(?APP, client_list, []),
-    emqttd_access_control:register_mod(auth, ?APP, ClientList),
+    emqx_access_control:register_mod(auth, ?APP, ClientList),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqttd_access_control:unregister_mod(auth, ?APP).
+    emqx_access_control:unregister_mod(auth, ?APP).
 
 %%--------------------------------------------------------------------
-%% Dummy Supervisor
+%% Dummy supervisor
 %%--------------------------------------------------------------------
 
 init([]) ->
