@@ -64,13 +64,11 @@ init({ClientList, HashType}) ->
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
     State = #state{hash_type = HashType},
-    Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
+    Clients = [r(ClientId, Password, HashType) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
     {ok, State}.
 
-r(ClientId, Password) ->
-    HashOpt = application:get_env(?TAB, config, []),
-    HashType = proplists:get_value(password_hash, HashOpt, md5),
+r(ClientId, Password, HashType) ->
     #?TAB{client_id = iolist_to_binary(ClientId),
           password  = hash(iolist_to_binary(Password), HashType)}.
 
@@ -94,19 +92,11 @@ description() ->
 
 encrypted_data(Password) ->
     HashOpt = get_passwordhash_config(),
-    HashType = proplists:get_value(password_hash, HashOpt, md5),
+    HashType = proplists:get_value(hash_type, HashOpt, md5),
     hash(Password, HashType).
     
 get_passwordhash_config() ->
-    application:get_env(emqx_auth_clientid, config, []).
+    application:get_env(emqx_auth_clientid, password_hash, []).
 
 hash(Password, HashType) ->
-    emqx_passwd:hash(HashType, Password);
-hash(Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-    emqx_passwd:hash(pbkdf2, {salt, Password, Macfun, Iterations, Dklen});
-hash(Password, {salt, bcrypt}) ->
-    emqx_passwd:hash(bcrypt, {salt, Password});
-hash(Password, {salt, HashType}) ->
-    emqx_passwd:hash(HashType, <<salt/binary, Password/binary>>);
-hash(Password, {HashType, salt}) ->
-    emqx_passwd:hash(HashType, <<Password/binary, salt/binary>>).
+    emqx_passwd:hash(HashType, Password).

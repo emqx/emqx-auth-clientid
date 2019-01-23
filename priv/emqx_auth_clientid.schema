@@ -9,7 +9,7 @@
   {datatype, string}
 ]}.
 
-{mapping, "auth.client.password_hash", "emqx_auth_clientid.config", [
+{mapping, "auth.client.password_hash", "emqx_auth_clientid.password_hash", [
   {datatype, string}
 ]}.
 
@@ -23,7 +23,7 @@
   	end, [], ClientList)
 end}.
 
-{translation, "emqx_auth_clientid.config", fun(Conf) ->
+{translation, "emqx_auth_clientid.password_hash", fun(Conf) ->
   PasswordHash = cuttlefish:conf_get("auth.client.password_hash", Conf),
   HashValue =
     case string:tokens(PasswordHash, ",") of
@@ -32,5 +32,5 @@ end}.
           [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash), list_to_atom(MacFun), list_to_integer(Iterations), list_to_integer(Dklen)};
           _                -> plain
     end,
-    [{password_hash, HashValue}]
+    [{hash_type, HashValue}]
 end}.
