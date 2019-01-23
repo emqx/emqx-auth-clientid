@@ -25,6 +25,7 @@
 
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).
+-record(state, {hash_type}).
 
 %%------------------------------------------------------------------------------
 %% API
@@ -33,7 +34,7 @@
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
-    R = #?TAB{client_id = ClientId, password = Password},
+    R = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
     mnesia:transaction(fun mnesia:write/1, [R]).
 
 %% @doc Lookup clientid
@@ -57,29 +58,55 @@ ret({aborted, Error}) -> {error, Error}.
 %% emqx_auth_mod callbacks
 %%------------------------------------------------------------------------------
 
-init(ClientList) ->
+init({ClientList, HashType}) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
+    State = #state{hash_type = HashType},
     Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
-    {ok, []}.
+    {ok, State}.
 
 r(ClientId, Password) ->
+    HashOpt = application:get_env(?TAB, config, []),
+    HashType = proplists:get_value(password_hash, HashOpt, md5),
     #?TAB{client_id = iolist_to_binary(ClientId),
-          password  = iolist_to_binary(Password)}.
+          password  = hash(iolist_to_binary(Password), HashType)}.
 
 check(#{client_id := undefined}, _Password, _) ->
     {error, clientid_undefined};
 check(_Credentials, undefined, _) ->
     {error, password_undefined};
-check(#{client_id := ClientId}, Password, _) ->
+check(#{client_id := ClientId}, Password, #state{hash_type = HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
         [] -> ignore;
-        [#?TAB{password = Password}] -> ok; %% TODO: plaintext??
-        _ -> {error, password_error}
-    end.
+        [#?TAB{password = Password1}] ->
+
+            case Password1 =:= hash(Password, HashType) of
+                true -> ok;
+                false -> {error, password_error}
+            end
+        end.
 
 description() ->
     "ClientId Authentication Module".
+
+encrypted_data(Password) ->
+    HashOpt = get_passwordhash_config(),
+    HashType = proplists:get_value(password_hash, HashOpt, md5),
+    hash(Password, HashType).
+    
+get_passwordhash_config() ->
+    application:get_env(emqx_auth_clientid, config, []).
+
+hash(Password, HashType) ->
+    emqx_passwd:hash(HashType, Password);
+hash(Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
+    emqx_passwd:hash(pbkdf2, {salt, Password, Macfun, Iterations, Dklen});
+hash(Password, {salt, bcrypt}) ->
+    emqx_passwd:hash(bcrypt, {salt, Password});
+hash(Password, {salt, HashType}) ->
+    emqx_passwd:hash(HashType, <<salt/binary, Password/binary>>);
+hash(Password, {HashType, salt}) ->
+    emqx_passwd:hash(HashType, <<Password/binary, salt/binary>>).

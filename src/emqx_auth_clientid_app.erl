@@ -26,10 +26,14 @@
 
 start(_Type, _Args) ->
     ClientList = application:get_env(?APP, client_list, []),
-    emqx_access_control:register_mod(auth, ?APP, ClientList),
+    HashOpt = application:get_env(?APP, config, []),
+    HashType = proplists:get_value(password_hash, HashOpt),
+    emqx_access_control:register_mod(auth, ?APP, {ClientList, HashType}),
+    emqx_auth_clientid_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
+    emqx_auth_clientid_cfg:unregister(),
     emqx_access_control:unregister_mod(auth, ?APP).
 
 %%--------------------------------------------------------------------
