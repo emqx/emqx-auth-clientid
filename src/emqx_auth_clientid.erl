@@ -91,12 +91,11 @@ description() ->
     "ClientId Authentication Module".
 
 encrypted_data(Password) ->
-    HashOpt = get_passwordhash_config(),
-    HashType = proplists:get_value(hash_type, HashOpt, md5),
+    HashType = get_passwordhash_config(),
     hash(Password, HashType).
     
 get_passwordhash_config() ->
-    application:get_env(emqx_auth_clientid, password_hash, []).
+    application:get_env(emqx_auth_clientid, password_hash, md5).
 
 hash(Password, HashType) ->
     emqx_passwd:hash(HashType, Password).

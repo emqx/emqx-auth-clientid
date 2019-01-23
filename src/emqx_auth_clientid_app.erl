@@ -26,8 +26,7 @@
 
 start(_Type, _Args) ->
     ClientList = application:get_env(?APP, client_list, []),
-    HashOpt = application:get_env(?APP, password_hash, []),
-    HashType = proplists:get_value(hash_type, HashOpt),
+    HashType = application:get_env(?APP, password_hash, md5),
     emqx_access_control:register_mod(auth, ?APP, {ClientList, HashType}),
     emqx_auth_clientid_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
