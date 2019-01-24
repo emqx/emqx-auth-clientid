@@ -97,7 +97,6 @@ ret({aborted, Error}) -> {error, Error}.
 %%------------------------------------------------------------------------------
 
 init({ClientList, HashType}) ->
-    io:format("SSD ~p~n", [{ClientList, HashType}]),
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
