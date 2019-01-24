@@ -18,6 +18,13 @@ etc/emqx_auth_clientid.conf:
 ```
 ##auth.client.$N.clientid = clientid
 ##auth.client.$N.password = passwd
+
+## Password hash.
+##
+## Value: plain | md5 | sha | sha256
+auth.client.password_hash = md5
+```
+
 ```
 
 Load the Plugin
