@@ -94,11 +94,11 @@ emqx_auth_clientid_api(_Config) ->
 change_config(_Config) ->
     application:stop(emqx_auth_clientid),
     application:set_env(emqx_auth_clientid, client_list,
-                        [{"id1", "password1"}, {"dev:devid", "passwd2"}]),
+                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
     ok = application:start(emqx_auth_clientid),
-    User1 = #{client_id => <<"id1">>},
+    User1 = #{client_id => <<"id">>},
     User2 = #{client_id => <<"dev:devid">>},
-    ok = emqx_access_control:authenticate(User1, <<"password1">>),
+    ok = emqx_access_control:authenticate(User1, <<"password">>),
     {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
     ok = emqx_access_control:authenticate(User2, <<"passwd2">>),
     %% clean data

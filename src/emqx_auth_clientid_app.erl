@@ -26,7 +26,8 @@
 
 start(_Type, _Args) ->
     ClientList = application:get_env(?APP, client_list, []),
-    HashType = application:get_env(?APP, password_hash, md5),
+    HashType = application:get_env(?APP, password_hash, md5), 
+    io:format("ssds ~p~n", [{ClientList, HashType}]),
     emqx_access_control:register_mod(auth, ?APP, {ClientList, HashType}),
     emqx_auth_clientid_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).

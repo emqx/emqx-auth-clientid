@@ -21,7 +21,7 @@ etc/emqx_auth_clientid.conf:
 
 ## Password hash.
 ##
-## Value: plain | md5 | sha | sha256 | bcrypt
+## Value: plain | md5 | sha | sha256
 auth.client.password_hash = md5
 ```
 
