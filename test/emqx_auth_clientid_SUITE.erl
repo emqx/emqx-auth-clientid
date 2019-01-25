@@ -24,7 +24,7 @@ all() ->
     [{group, emqx_auth_clientid}].
 
 groups() ->
-    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, change_config]}].
+    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config]}].
 
 init_per_suite(Config) ->
     [start_apps(App, {SchemaFile, ConfigFile}) ||
@@ -104,3 +104,16 @@ change_config(_Config) ->
     %% clean data
     ok = emqx_auth_clientid:remove_clientid(<<"id1">>),
     ok = emqx_auth_clientid:remove_clientid(<<"dev:devid">>).
+
+cli(_Config) ->
+    [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
+    emqx_auth_clientid:cli(["add", "clientid", "password"]),
+    [{emqx_auth_clientid, <<"clientid">>, _M}] =
+        emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    emqx_auth_clientid:cli(["del", "clientid"]),
+    [] = emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    emqx_auth_clientid:cli(["add", "user1", "pass1"]),
+    emqx_auth_clientid:cli(["add", "user2", "pass2"]),
+    UserList = emqx_auth_clientid:cli(["list"]),
+    2 = length(UserList),
+    emqx_auth_clientid:cli(usage).

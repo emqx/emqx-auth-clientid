@@ -18,6 +18,9 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
+% CLI callbacks
+-export([cli/1]).
+-export([is_enabled/0]).
 -export([add_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
 %% emqx_auth_mod callbacks
@@ -27,9 +30,44 @@
 -record(?TAB, {client_id, password}).
 -record(state, {hash_type}).
 
+%-----------------------------------------------------------------------------
+% CLI
+%-----------------------------------------------------------------------------
+
+cli(["list"]) ->
+    if_enabled(fun() ->
+        ClientIds = mnesia:dirty_all_keys(?TAB),
+        [emqx_cli:print("~s~n", [ClientId]) || ClientId <- ClientIds]
+    end);
+
+cli(["add", ClientId, Password]) ->
+    if_enabled(fun() ->
+        Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
+        emqx_cli:print("~p~n", [Ok])
+    end);
+
+cli(["del", ClientId]) ->
+    if_enabled(fun() ->
+        emqx_cli:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
+    end);
+
+cli(_) ->
+    emqx_cli:usage([{"clientid list", "List ClientId"},
+                    {"clientid add <ClientId> <Password>", "Add ClientId"},
+                    {"clientid del <ClientId>", "Delete ClientId"}]).
+
+if_enabled(Fun) ->
+    case is_enabled() of true -> Fun(); false -> hint() end.
+
+hint() ->
+    emqx_cli:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
+
 %%------------------------------------------------------------------------------
 %% API
 %%------------------------------------------------------------------------------
+
+is_enabled() ->
+    lists:member(?TAB, mnesia:system_info(tables)).
 
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
@@ -90,7 +128,7 @@ description() ->
     "ClientId Authentication Module".
 
 encrypted_data(Password) ->
-    HashType = application:get_env(emqx_auth_clientid, password_hash, md5),
+    HashType = application:get_env(emqx_auth_clientid, password_hash, sha256),
     SaltBin = salt(),
     <<SaltBin/binary, (hash(Password, SaltBin, HashType))/binary>>.
 
