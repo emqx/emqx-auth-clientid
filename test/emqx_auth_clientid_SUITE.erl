@@ -29,22 +29,36 @@ groups() ->
 init_per_suite(Config) ->
     [start_apps(App, {SchemaFile, ConfigFile}) ||
         {App, SchemaFile, ConfigFile}
-            <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
-                       local_path("deps/emqx/etc/emqx.conf")},
+            <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
+                       deps_path(emqx, "etc/emqx.conf")},
+                {emqx_management, deps_path(emqx_management, "priv/emqx_management.schema"),
+                                  deps_path(emqx_management, "etc/emqx_management.conf")},
                 {emqx_auth_clientid, local_path("priv/emqx_auth_clientid.schema"),
                                      local_path("etc/emqx_auth_clientid.conf")}]],
     Config.
 
 end_per_suite(_Config) ->
     application:stop(emqx_auth_clientid),
+    application:stop((emqx_management)),
     application:stop(emqx).
 
-get_base_dir() ->
-    {file, Here} = code:is_loaded(?MODULE),
-    filename:dirname(filename:dirname(Here)).
+% get_base_dir() ->
+%     {file, Here} = code:is_loaded(?MODULE),
+%     filename:dirname(filename:dirname(Here)).
+
+deps_path(App, RelativePath) ->
+    %% Note: not lib_dir because etc dir is not sym-link-ed to _build dir
+    %% but priv dir is
+    Path0 = code:priv_dir(App),
+    Path = case file:read_link(Path0) of
+               {ok, Resolved} -> Resolved;
+               {error, _} -> Path0
+           end,
+    filename:join([Path, "..", RelativePath]).
 
 local_path(RelativePath) ->
-    filename:join([get_base_dir(), RelativePath]).
+    % filename:join([get_base_dir(), RelativePath]).
+    deps_path(emqx_auth_clientid, RelativePath).
 
 start_apps(App, {SchemaFile, ConfigFile}) ->
     read_schema_configs(App, {SchemaFile, ConfigFile}),
@@ -63,25 +77,30 @@ set_special_configs(emqx) ->
     application:set_env(emqx, allow_anonymous, false),
     application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx, plugins_loaded_file,
-                        local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
+                        deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
 set_special_configs(_App) ->
     ok.
 
 emqx_auth_clientid_api(_Config) ->
     {atomic, ok} = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
     User1 = #{client_id => <<"emq_auth_clientid">>},
-    [{emqx_auth_clientid,<<"emq_auth_clientid">>,<<"password">>}] =
-        emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
+    [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
+    emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
     ok = emqx_access_control:authenticate(User1, <<"password">>),
+    emqx_access_control:authenticate(User1, <<"password">>),
     ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
     {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_clientid),
-    application:set_env(emqx_auth_clientid, client_list, [{"id", "password"}, {"dev:devid", "passwd2"}]),
-    application:start(emqx_auth_clientid),
+    application:set_env(emqx_auth_clientid, client_list,
+                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
+    ok = application:start(emqx_auth_clientid),
     User1 = #{client_id => <<"id">>},
     User2 = #{client_id => <<"dev:devid">>},
     ok = emqx_access_control:authenticate(User1, <<"password">>),
     {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
-    ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
+    ok = emqx_access_control:authenticate(User2, <<"passwd2">>),
+    %% clean data
+    ok = emqx_auth_clientid:remove_clientid(<<"id1">>),
+    ok = emqx_auth_clientid:remove_clientid(<<"dev:devid">>).
