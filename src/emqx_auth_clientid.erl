@@ -18,6 +18,9 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
+% CLI callbacks
+-export([cli/1]).
+-export([is_enabled/0]).
 -export([add_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
 %% emqx_auth_mod callbacks
@@ -25,15 +28,51 @@
 
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).
+-record(state, {hash_type}).
+
+%-----------------------------------------------------------------------------
+% CLI
+%-----------------------------------------------------------------------------
+
+cli(["list"]) ->
+    if_enabled(fun() ->
+        ClientIds = mnesia:dirty_all_keys(?TAB),
+        [emqx_cli:print("~s~n", [ClientId]) || ClientId <- ClientIds]
+    end);
+
+cli(["add", ClientId, Password]) ->
+    if_enabled(fun() ->
+        Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
+        emqx_cli:print("~p~n", [Ok])
+    end);
+
+cli(["del", ClientId]) ->
+    if_enabled(fun() ->
+        emqx_cli:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
+    end);
+
+cli(_) ->
+    emqx_cli:usage([{"clientid list", "List ClientId"},
+                    {"clientid add <ClientId> <Password>", "Add ClientId"},
+                    {"clientid del <ClientId>", "Delete ClientId"}]).
+
+if_enabled(Fun) ->
+    case is_enabled() of true -> Fun(); false -> hint() end.
+
+hint() ->
+    emqx_cli:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
 
 %%------------------------------------------------------------------------------
 %% API
 %%------------------------------------------------------------------------------
 
+is_enabled() ->
+    lists:member(?TAB, mnesia:system_info(tables)).
+
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
-    R = #?TAB{client_id = ClientId, password = Password},
+    R = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
     mnesia:transaction(fun mnesia:write/1, [R]).
 
 %% @doc Lookup clientid
@@ -57,29 +96,45 @@ ret({aborted, Error}) -> {error, Error}.
 %% emqx_auth_mod callbacks
 %%------------------------------------------------------------------------------
 
-init(ClientList) ->
+init({ClientList, HashType}) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
+    State = #state{hash_type = HashType},
     Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
-    {ok, []}.
+    {ok, State}.
 
 r(ClientId, Password) ->
     #?TAB{client_id = iolist_to_binary(ClientId),
-          password  = iolist_to_binary(Password)}.
+          password  = encrypted_data(iolist_to_binary(Password))}.
 
 check(#{client_id := undefined}, _Password, _) ->
     {error, clientid_undefined};
 check(_Credentials, undefined, _) ->
     {error, password_undefined};
-check(#{client_id := ClientId}, Password, _) ->
-    case mnesia:dirty_read(?TAB, ClientId) of
+check(#{client_id := Client}, Password, #state{hash_type = HashType}) ->
+    case mnesia:dirty_read(?TAB, Client) of
         [] -> ignore;
-        [#?TAB{password = Password}] -> ok; %% TODO: plaintext??
-        _ -> {error, password_error}
+        [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
+            case Hash =:= hash(Password, Salt, HashType) of
+                true -> ok;
+                false -> {error, password_error}
+            end
     end.
 
 description() ->
     "ClientId Authentication Module".
+
+encrypted_data(Password) ->
+    HashType = application:get_env(emqx_auth_clientid, password_hash, sha256),
+    SaltBin = salt(),
+    <<SaltBin/binary, (hash(Password, SaltBin, HashType))/binary>>.
+
+hash(Password, SaltBin, HashType) ->
+    emqx_passwd:hash(HashType, <<SaltBin/binary, Password/binary>>).
+
+salt() ->
+    rand:seed(exsplus, erlang:timestamp()),
+    Salt = rand:uniform(16#ffffffff), <<Salt:32>>.

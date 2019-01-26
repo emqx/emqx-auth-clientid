@@ -9,6 +9,11 @@
   {datatype, string}
 ]}.
 
+{mapping, "auth.client.password_hash", "emqx_auth_clientid.password_hash", [
+  {default, sha256},
+  {datatype, {enum, [plain, md5, sha, sha256]}}
+]}.
+
 {translation, "emqx_auth_clientid.client_list", fun(Conf) ->
   ClientList = cuttlefish_variable:filter_by_prefix("auth.client", Conf),
   lists:foldl(
