@@ -79,24 +79,24 @@ is_enabled() ->
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
-    R = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
-    ret(mnesia:transaction(fun do_add_clientid/1, [R])).
+    Client = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
+    ret(mnesia:transaction(fun do_add_clientid/1, [Client])).
 
-do_add_clientid(R = #?TAB{client_id = ClientId}) ->
+do_add_clientid(Client = #?TAB{client_id = ClientId}) ->
     case mnesia:read(?TAB, ClientId) of
-        [] -> mnesia:write(R);
+        [] -> mnesia:write(Client);
         [_|_] -> mnesia:abort(exitsted)
     end.
 
 %% @doc Update clientid with newpassword
 -spec(update_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 update_clientid(ClientId, NewPassword) ->
-    R = #?TAB{client_id = ClientId, password = encrypted_data(NewPassword)},
-    ret(mnesia:transaction(fun do_update_clientid/1, [R])).
+    Client = #?TAB{client_id = ClientId, password = encrypted_data(NewPassword)},
+    ret(mnesia:transaction(fun do_update_clientid/1, [Client])).
 
-do_update_clientid(R = #?TAB{client_id = ClientId}) -> 
+do_update_clientid(Client = #?TAB{client_id = ClientId}) -> 
     case mnesia:read(?TAB, ClientId) of
-        [_|_] -> mnesia:write(R);
+        [_|_] -> mnesia:write(Client);
         [] -> mnesia:abort(noexitsted)
     end.
 
