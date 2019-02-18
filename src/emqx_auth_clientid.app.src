@@ -1,6 +1,6 @@
 {application, emqx_auth_clientid, [
 	{description, "EMQ X Authentication with ClientId/Password"},
-	{vsn, "3.0"},
+	{vsn, "git"},
 	{modules, []},
 	{registered, [emqx_auth_clientid_sup]},
 	{applications, [kernel,stdlib]},
