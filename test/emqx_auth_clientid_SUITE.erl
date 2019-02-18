@@ -82,7 +82,7 @@ set_special_configs(_App) ->
     ok.
 
 emqx_auth_clientid_api(_Config) ->
-    {atomic, ok} = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
+    ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
     User1 = #{client_id => <<"emq_auth_clientid">>},
     [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
@@ -108,8 +108,20 @@ change_config(_Config) ->
 cli(_Config) ->
     [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
     emqx_auth_clientid:cli(["add", "clientid", "password"]),
-    [{emqx_auth_clientid, <<"clientid">>, _M}] =
+    [{emqx_auth_clientid, <<"clientid">>, <<Salt:4/binary, Hash/binary>>}] =
         emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    HashType = application:get_env(emqx_auth_clientid, password_hash, sha256), 
+    case Hash =:= emqx_passwd:hash(HashType, <<Salt/binary, <<"password">>/binary>>) of
+        true -> ok;
+        false -> ct:fail("password error")
+    end,
+    emqx_auth_clientid:cli(["update", "clientid", "newpassword"]),
+    [{emqx_auth_clientid, <<"clientid">>, <<Salt1:4/binary, Hash1/binary>>}] =
+        emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    case Hash1 =:= emqx_passwd:hash(HashType, <<Salt1/binary, <<"newpassword">>/binary>>) of
+        true -> ok;
+        false -> ct:fail("password error")
+    end,    
     emqx_auth_clientid:cli(["del", "clientid"]),
     [] = emqx_auth_clientid:lookup_clientid(<<"clientid">>),
     emqx_auth_clientid:cli(["add", "user1", "pass1"]),
