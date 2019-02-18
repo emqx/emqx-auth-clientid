@@ -1,6 +1,5 @@
 PROJECT = emqx_auth_clientid
 PROJECT_DESCRIPTION = EMQ X Authentication with ClientId/Password
-PROJECT_VERSION = 3.1
 
 DEPS = emqx_passwd clique
 dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
