@@ -1,4 +1,4 @@
-%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 % CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
+-export([add_clientid/2, update_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
 %% emqx_auth_mod callbacks
 -export([init/1, check/3, description/0]).
@@ -46,6 +46,12 @@ cli(["add", ClientId, Password]) ->
         emqx_cli:print("~p~n", [Ok])
     end);
 
+cli(["update", ClientId, NewPassword]) ->
+    if_enabled(fun() ->
+        Ok = update_clientid(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
+        emqx_cli:print("~p~n", [Ok])
+    end);
+
 cli(["del", ClientId]) ->
     if_enabled(fun() ->
         emqx_cli:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
@@ -54,6 +60,7 @@ cli(["del", ClientId]) ->
 cli(_) ->
     emqx_cli:usage([{"clientid list", "List ClientId"},
                     {"clientid add <ClientId> <Password>", "Add ClientId"},
+                    {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
                     {"clientid del <ClientId>", "Delete ClientId"}]).
 
 if_enabled(Fun) ->
@@ -72,8 +79,26 @@ is_enabled() ->
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
-    R = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
-    mnesia:transaction(fun mnesia:write/1, [R]).
+    Client = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
+    ret(mnesia:transaction(fun do_add_clientid/1, [Client])).
+
+do_add_clientid(Client = #?TAB{client_id = ClientId}) ->
+    case mnesia:read(?TAB, ClientId) of
+        [] -> mnesia:write(Client);
+        [_|_] -> mnesia:abort(exitsted)
+    end.
+
+%% @doc Update clientid with newpassword
+-spec(update_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
+update_clientid(ClientId, NewPassword) ->
+    Client = #?TAB{client_id = ClientId, password = encrypted_data(NewPassword)},
+    ret(mnesia:transaction(fun do_update_clientid/1, [Client])).
+
+do_update_clientid(Client = #?TAB{client_id = ClientId}) -> 
+    case mnesia:read(?TAB, ClientId) of
+        [_|_] -> mnesia:write(Client);
+        [] -> mnesia:abort(noexitsted)
+    end.
 
 %% @doc Lookup clientid
 -spec(lookup_clientid(binary()) -> list(#?TAB{})).
