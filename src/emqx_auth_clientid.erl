@@ -21,7 +21,7 @@
 % CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_clientid/2, update_clientid/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
+-export([add_clientid/2, update_password/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
 %% emqx_auth_mod callbacks
 -export([init/1, check/3, description/0]).
@@ -48,7 +48,7 @@ cli(["add", ClientId, Password]) ->
 
 cli(["update", ClientId, NewPassword]) ->
     if_enabled(fun() ->
-        Ok = update_clientid(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
+        Ok = update_password(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
         emqx_cli:print("~p~n", [Ok])
     end);
 
@@ -89,12 +89,12 @@ do_add_clientid(Client = #?TAB{client_id = ClientId}) ->
     end.
 
 %% @doc Update clientid with newpassword
--spec(update_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
-update_clientid(ClientId, NewPassword) ->
+-spec(update_password(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
+update_password(ClientId, NewPassword) ->
     Client = #?TAB{client_id = ClientId, password = encrypted_data(NewPassword)},
-    ret(mnesia:transaction(fun do_update_clientid/1, [Client])).
+    ret(mnesia:transaction(fun do_update_password/1, [Client])).
 
-do_update_clientid(Client = #?TAB{client_id = ClientId}) -> 
+do_update_password(Client = #?TAB{client_id = ClientId}) ->
     case mnesia:read(?TAB, ClientId) of
         [_|_] -> mnesia:write(Client);
         [] -> mnesia:abort(noexitsted)
