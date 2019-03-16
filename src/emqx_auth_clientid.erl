@@ -14,8 +14,6 @@
 
 -module(emqx_auth_clientid).
 
--behaviour(emqx_auth_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
 % CLI callbacks
