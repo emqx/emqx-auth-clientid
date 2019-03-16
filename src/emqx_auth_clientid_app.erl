@@ -14,6 +14,8 @@
 
 -module(emqx_auth_clientid_app).
 
+-include("emqx_auth_clientid.hrl").
+
 -behaviour(application).
 
 -export([start/2, stop/1]).
@@ -21,8 +23,6 @@
 -behaviour(supervisor).
 
 -export([init/1]).
-
--define(APP, emqx_auth_clientid).
 
 start(_Type, _Args) ->
     emqx_ctl:register_command(clientid, {?APP, cli}, []),
