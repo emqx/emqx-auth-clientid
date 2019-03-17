@@ -14,6 +14,8 @@
 
 -module(emqx_auth_clientid_app).
 
+-include("emqx_auth_clientid.hrl").
+
 -behaviour(application).
 
 -export([start/2, stop/1]).
@@ -22,18 +24,18 @@
 
 -export([init/1]).
 
--define(APP, emqx_auth_clientid).
-
 start(_Type, _Args) ->
     emqx_ctl:register_command(clientid, {?APP, cli}, []),
     ClientList = application:get_env(?APP, client_list, []),
-    HashType = application:get_env(?APP, password_hash, sha256), 
-    emqx_access_control:register_mod(auth, ?APP, {ClientList, HashType}),
+    HashType = application:get_env(?APP, password_hash, sha256),
+    Params = #{hash_type => HashType},
+    emqx:hook('client.authenticate', fun emqx_auth_clientid:check/2, [Params]),
+    ok = emqx_auth_clientid:init(ClientList),    
     emqx_auth_clientid_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqx_access_control:unregister_mod(auth, ?APP),
+    emqx:unhook('client.authenticate', fun emqx_auth_clientid:check/2),
     emqx_auth_clientid_cfg:unregister(),
     emqx_ctl:unregister_command(clientid).
 

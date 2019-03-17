@@ -80,24 +80,27 @@ set_special_configs(_App) ->
 
 emqx_auth_clientid_api(_Config) ->
     ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
-    User1 = #{client_id => <<"emq_auth_clientid">>},
+    User = #{client_id => <<"emq_auth_clientid">>,
+             username => <<"user">>,
+             password => <<"password">>},
     [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
-    ok = emqx_access_control:authenticate(User1, <<"password">>),
-    emqx_access_control:authenticate(User1, <<"password">>),
+    {ok, _} = emqx_access_control:authenticate(User),
     ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
-    {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
+    {error, _} = emqx_access_control:authenticate(User).
 
 change_config(_Config) ->
     application:stop(emqx_auth_clientid),
     application:set_env(emqx_auth_clientid, client_list,
                         [{"id", "password"}, {"dev:devid", "passwd2"}]),
     ok = application:start(emqx_auth_clientid),
-    User1 = #{client_id => <<"id">>},
-    User2 = #{client_id => <<"dev:devid">>},
-    ok = emqx_access_control:authenticate(User1, <<"password">>),
-    {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
-    ok = emqx_access_control:authenticate(User2, <<"passwd2">>),
+    User1 = #{client_id => <<"id">>,
+              password => <<"password">>},    
+    User2 = #{client_id => <<"dev:devid">>,
+             password => <<"passwd2">>},
+    {ok, _} = emqx_access_control:authenticate(User1),
+    {error, _} = emqx_access_control:authenticate(User1#{password => <<"passwd3">>}),
+    {ok, _} = emqx_access_control:authenticate(User2),
     %% clean data
     ok = emqx_auth_clientid:remove_clientid(<<"id1">>),
     ok = emqx_auth_clientid:remove_clientid(<<"dev:devid">>).

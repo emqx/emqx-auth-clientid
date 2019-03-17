@@ -14,8 +14,6 @@
 
 -module(emqx_auth_clientid).
 
--behaviour(emqx_auth_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
 % CLI callbacks
@@ -23,12 +21,11 @@
 -export([is_enabled/0]).
 -export([add_clientid/2, update_password/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
 
-%% emqx_auth_mod callbacks
--export([init/1, check/3, description/0]).
+-export([init/1, check/2, description/0]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).
--record(state, {hash_type}).
+-define(UNDEFINED(S), (S =:= undefined)).
 
 %-----------------------------------------------------------------------------
 % CLI
@@ -121,34 +118,32 @@ ret({aborted, Error}) -> {error, Error}.
 %% emqx_auth_mod callbacks
 %%------------------------------------------------------------------------------
 
-init({ClientList, HashType}) ->
+init(ClientList) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
-    State = #state{hash_type = HashType},
     Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
     mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
-    {ok, State}.
+    ok.
 
 r(ClientId, Password) ->
     #?TAB{client_id = iolist_to_binary(ClientId),
           password  = encrypted_data(iolist_to_binary(Password))}.
 
-check(#{client_id := undefined}, _Password, _) ->
-    {error, clientid_undefined};
-check(_Credentials, undefined, _) ->
-    {error, password_undefined};
-check(#{client_id := Client}, Password, #state{hash_type = HashType}) ->
-    case mnesia:dirty_read(?TAB, Client) of
-        [] -> ignore;
+check(Credentials = #{client_id := ClientId, password := Password}, _State)
+    when ?UNDEFINED(ClientId); ?UNDEFINED(Password) ->
+    {ok, Credentials#{result => clientid_or_password_undefined}};
+check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type := HashType}) ->
+    case mnesia:dirty_read(?TAB, ClientId) of
+        [] -> ok;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
-                true -> ok;
-                false -> {error, password_error}
+                true -> {stop, Credentials#{result => success}};
+                false -> {stop, Credentials#{result => password_error}}
             end
     end.
-
+        
 description() ->
     "ClientId Authentication Module".
 
