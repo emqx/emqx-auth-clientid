@@ -141,7 +141,7 @@ r(ClientId, Password) ->
 
 check(Credentials = #{client_id := ClientId, password := Password}, _State)
     when ?UNDEFINED(ClientId); ?UNDEFINED(Password) ->
-    {ok, Credentials#{auth_result => bad_username_or_password}};
+    {ok, Credentials#{auth_result => bad_clientid_or_password}};
 check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
         [] -> ok;
