@@ -122,9 +122,6 @@ remove_clientid(ClientId) ->
 
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
-%%------------------------------------------------------------------------------
-%% emqx_auth_mod callbacks
-%%------------------------------------------------------------------------------
 
 init(ClientList) ->
     ok = ekka_mnesia:create_table(?TAB, [
