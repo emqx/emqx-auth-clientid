@@ -19,9 +19,17 @@
 % CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_clientid/2, update_password/2, lookup_clientid/1, remove_clientid/1, all_clientids/0]).
+-export([ add_clientid/2
+        , update_password/2
+        , lookup_clientid/1
+        , remove_clientid/1
+        , all_clientids/0
+        ]).
 
--export([init/1, check/2, description/0]).
+-export([ init/1
+        , check/2
+        , description/0
+        ]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).
