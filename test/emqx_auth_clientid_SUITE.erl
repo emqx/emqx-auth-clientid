@@ -20,63 +20,37 @@
 
 -include_lib("common_test/include/ct.hrl").
 
+-import(emqx_ct_http, [ request_api/3
+                      , request_api/4
+                      , request_api/5
+                      , get_http_data/1
+                      , create_default_app/0
+                      , default_auth_header/0]).
+
+-define(HOST, "http://127.0.0.1:8080/").
+
+-define(API_VERSION, "v3").
+
+-define(BASE_PATH, "api").
+
 all() ->
     [{group, emqx_auth_clientid}].
 
 groups() ->
-    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config]}].
+    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config, t_http_api]}].
 
 init_per_suite(Config) ->
-    [start_apps(App, {SchemaFile, ConfigFile}) ||
-        {App, SchemaFile, ConfigFile}
-            <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
-                       deps_path(emqx, "etc/emqx.conf")},
-                {emqx_auth_clientid, local_path("priv/emqx_auth_clientid.schema"),
-                                     local_path("etc/emqx_auth_clientid.conf")}]],
+    emqx_ct_helpers:start_apps([emqx, emqx_auth_clientid, emqx_management], [{plugins_loaded_file, emqx, "test/emqx_SUITE_data/loaded_plugins"}]),
+    application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, enable_acl_cache, false),
+    ekka_mnesia:start(),
+    emqx_mgmt_auth:mnesia(boot),
+    create_default_app(),
     Config.
 
 end_per_suite(_Config) ->
-    application:stop(emqx_auth_clientid),
-    application:stop(emqx).
-
-% get_base_dir() ->
-%     {file, Here} = code:is_loaded(?MODULE),
-%     filename:dirname(filename:dirname(Here)).
-
-deps_path(App, RelativePath) ->
-    %% Note: not lib_dir because etc dir is not sym-link-ed to _build dir
-    %% but priv dir is
-    Path0 = code:priv_dir(App),
-    Path = case file:read_link(Path0) of
-               {ok, Resolved} -> Resolved;
-               {error, _} -> Path0
-           end,
-    filename:join([Path, "..", RelativePath]).
-
-local_path(RelativePath) ->
-    % filename:join([get_base_dir(), RelativePath]).
-    deps_path(emqx_auth_clientid, RelativePath).
-
-start_apps(App, {SchemaFile, ConfigFile}) ->
-    read_schema_configs(App, {SchemaFile, ConfigFile}),
-    set_special_configs(App),
-    application:ensure_all_started(App).
-
-read_schema_configs(App, {SchemaFile, ConfigFile}) ->
-    ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
-    Schema = cuttlefish_schema:files([SchemaFile]),
-    Conf = conf_parse:file(ConfigFile),
-    NewConfig = cuttlefish_generator:map(Schema, Conf),
-    Vals = proplists:get_value(App, NewConfig, []),
-    [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
-
-set_special_configs(emqx) ->
-    application:set_env(emqx, allow_anonymous, false),
-    application:set_env(emqx, enable_acl_cache, false),
-    application:set_env(emqx, plugins_loaded_file,
-                        deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
-set_special_configs(_App) ->
-    ok.
+    emqx_ct_helpers:stop_apps([emqx_auth_clientid, emqx_management, emqx]),
+    ekka_mnesia:ensure_stopped().
 
 emqx_auth_clientid_api(_Config) ->
     ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
@@ -121,7 +95,7 @@ cli(_Config) ->
     case Hash1 =:= emqx_passwd:hash(HashType, <<Salt1/binary, <<"newpassword">>/binary>>) of
         true -> ok;
         false -> ct:fail("password error")
-    end,    
+    end,
     emqx_auth_clientid:cli(["del", "clientid"]),
     [] = emqx_auth_clientid:lookup_clientid(<<"clientid">>),
     emqx_auth_clientid:cli(["add", "user1", "pass1"]),
@@ -129,3 +103,33 @@ cli(_Config) ->
     UserList = emqx_auth_clientid:cli(["list"]),
     2 = length(UserList),
     emqx_auth_clientid:cli(usage).
+
+t_http_api(_Config) ->
+    [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
+    {ok, Result} = request_api(get, api_path(["auth_clientid"]), default_auth_header()),
+    [] = get_http_data(Result),
+    {ok, _} = request_api(post, api_path(["auth_clientid"]), [], default_auth_header(), [{<<"clientid">>, <<"clientid">>},
+                                                                                         {<<"password">>, <<"password">>}]),
+    {ok, Result1} = request_api(get, api_path(["auth_clientid"]), default_auth_header()),
+    [<<"clientid">>] = get_http_data(Result1),
+    [{emqx_auth_clientid, <<"clientid">>, <<Salt:4/binary, Hash/binary>>}] =
+        emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    HashType = application:get_env(emqx_auth_clientid, password_hash, sha256), 
+    case Hash =:= emqx_passwd:hash(HashType, <<Salt/binary, <<"password">>/binary>>) of
+        true -> ok;
+        false -> ct:fail("password error")
+    end,
+    {ok, _} = request_api(put, api_path(["auth_clientid", "clientid"]), [], default_auth_header(), [{<<"password">>, <<"newpassword">>}]),
+    [{emqx_auth_clientid, <<"clientid">>, <<Salt1:4/binary, Hash1/binary>>}] =
+        emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    HashType1 = application:get_env(emqx_auth_clientid, password_hash, sha256), 
+    case Hash1 =:= emqx_passwd:hash(HashType1, <<Salt1/binary, <<"newpassword">>/binary>>) of
+        true -> ok;
+        false -> ct:fail("password error")
+    end,
+    {ok, _} = request_api(delete, api_path(["auth_clientid", "clientid"]), default_auth_header()),
+    [] = emqx_auth_clientid:lookup_clientid(<<"clientid">>),
+    ok.
+
+api_path(Parts) ->
+    ?HOST ++ filename:join([?BASE_PATH, ?API_VERSION] ++ Parts).
