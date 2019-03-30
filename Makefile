@@ -9,13 +9,13 @@ dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
 dep_clique      = git-emqx https://github.com/emqx/clique v0.3.11
 dep_minirest = git-emqx https://github.com/emqx/minirest v0.2.0
 
-BUILD_DEPS = emqx cuttlefish emqx_management
+BUILD_DEPS = emqx cuttlefish
 dep_emqx = git-emqx https://github.com/emqx/emqx $(BRANCH)
 dep_cuttlefish = git-emqx https://github.com/emqx/cuttlefish v2.2.1
-dep_emqx_management = git-emqx https://github.com/emqx/emqx-management $(BRANCH)
 
-TEST_DEPS = emqx_ct_helper
+TEST_DEPS = emqx_ct_helper emqx_management
 dep_emqx_ct_helper = git-emqx https://github.com/emqx/emqx-ct-helpers $(BRANCH)
+dep_emqx_management = git-emqx https://github.com/emqx/emqx-management $(BRANCH)
 
 NO_AUTOPATCH = cuttlefish
 

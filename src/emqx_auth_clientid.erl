@@ -28,7 +28,7 @@
 
 -export([ init/1
         , check/2
-        , unwarp_salt/1
+        , unwrap_salt/1
         , description/0
         ]).
 
@@ -150,7 +150,7 @@ check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type 
             end
     end.
 
-unwarp_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
     HashPasswd.
 
 description() ->

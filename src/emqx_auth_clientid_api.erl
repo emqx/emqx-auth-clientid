@@ -107,7 +107,7 @@ return(R) ->
 
 format([{?APP, ClientId, Password}]) ->
     [{clientid, ClientId},
-     {password, emqx_auth_clientid:unwap_salt(Password)}].
+     {password, emqx_auth_clientid:unwrap_salt(Password)}].
 
 validate([], []) ->
     ok;

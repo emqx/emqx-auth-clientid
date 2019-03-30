@@ -110,9 +110,9 @@ t_http_api(_Config) ->
     [] = get_http_data(Result),
     {ok, _} = request_api(post, api_path(["auth_clientid"]), [], default_auth_header(), [{<<"clientid">>, <<"clientid">>},
                                                                                          {<<"password">>, <<"password">>}]),
-    {ok, Result1} = request_api(get, api_path(["auth_clientid"]), default_auth_header()),
-    [<<"clientid">>] = get_http_data(Result1),
-    [{emqx_auth_clientid, <<"clientid">>, <<Salt:4/binary, Hash/binary>>}] =
+    {ok, Result1} = request_api(get, api_path(["auth_clientid", "clientid"]), default_auth_header()),
+    [_, {<<"password">>, Hash}] = get_http_data(Result1),
+    [{emqx_auth_clientid, <<"clientid">>, <<Salt:4/binary, _Hash/binary>>}] =
         emqx_auth_clientid:lookup_clientid(<<"clientid">>),
     HashType = application:get_env(emqx_auth_clientid, password_hash, sha256), 
     case Hash =:= emqx_passwd:hash(HashType, <<Salt/binary, <<"password">>/binary>>) of
