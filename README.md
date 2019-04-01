@@ -30,7 +30,7 @@ auth.client.password_hash = sha256
 
 List all clientids
 ```
-#Request
+# Request
 GET api/v3/auth_clientid:
 
 # Response
@@ -42,7 +42,7 @@ GET api/v3/auth_clientid:
 
 Add cliendid
 ```
-#Request
+# Request
 POST api/v3/auth_clientid:
 
 # Response
@@ -54,7 +54,7 @@ POST api/v3/auth_clientid:
 Update password for a clientid:
 
 ```
-#Request
+# Request
 PUT api/v3/auth_clientid/$CLIENTID
 
 {

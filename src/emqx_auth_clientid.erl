@@ -28,9 +28,10 @@
 
 -export([ init/1
         , check/2
-        , unwrap_salt/1
         , description/0
         ]).
+
+-export([unwrap_salt/1]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).

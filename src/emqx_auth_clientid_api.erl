@@ -100,10 +100,10 @@ delete(#{clientid := ClientId}, _) ->
 %%------------------------------------------------------------------------------
 
 return() ->
-    emqx_mgmt:return().
+    minirest:return().
 
 return(R) ->
-    emqx_mgmt:return(R).
+    minirest:return(R).
 
 format([{?APP, ClientId, Password}]) ->
     [{clientid, ClientId},
