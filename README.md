@@ -45,7 +45,7 @@ Add cliendid:
 # Request
 POST api/v3/auth_clientid
 {
-    "clientid": "some_name",
+    "clientid": "a_client_id",
     "password": "password"
 }
 
@@ -81,7 +81,7 @@ GET api/v3/auth_clientid/$CLIENTID
 {
     "code": 0,
     "data": {
-        "clientid": "clientid",
+        "clientid": "a_client_id",
         "password": "hash_password" 
     }
 }
