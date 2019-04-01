@@ -17,6 +17,7 @@
 -include("emqx_auth_clientid.hrl").
 
 -import(proplists, [get_value/2]).
+-import(minirest,  [return/0, return/1]).
 
 -rest_api(#{ name   => list_clientid
            , method => 'GET'
@@ -98,12 +99,6 @@ delete(#{clientid := ClientId}, _) ->
 %%------------------------------------------------------------------------------
 %% Interval Funcs
 %%------------------------------------------------------------------------------
-
-return() ->
-    minirest:return().
-
-return(R) ->
-    minirest:return(R).
 
 format([{?APP, ClientId, Password}]) ->
     [{clientid, ClientId},
