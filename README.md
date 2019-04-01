@@ -44,6 +44,10 @@ Add cliendid:
 ```
 # Request
 POST api/v3/auth_clientid
+{
+    "clientid": "some_name",
+    "password": "password"
+}
 
 # Response
 {
