@@ -96,9 +96,6 @@ DELETE api/v3/auth_clientid/$CLIENTID
 
 ```
 
-
-```
-
 Load the Plugin
 ---------------
 
