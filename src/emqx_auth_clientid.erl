@@ -31,6 +31,8 @@
         , description/0
         ]).
 
+-export([unwrap_salt/1]).
+
 -define(TAB, ?MODULE).
 -record(?TAB, {client_id, password}).
 -define(UNDEFINED(S), (S =:= undefined)).
@@ -148,6 +150,9 @@ check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type 
                 false -> {stop, Credentials#{auth_result => password_error}}
             end
     end.
+
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+    HashPasswd.
 
 description() ->
     "ClientId Authentication Module".
