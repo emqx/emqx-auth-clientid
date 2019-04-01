@@ -28,10 +28,10 @@ auth.client.password_hash = sha256
 [REST API](https://developer.emqx.io/docs/emq/v3/en/rest.html)
 ------------
 
-List all clientids
+List all clientids:
 ```
 # Request
-GET api/v3/auth_clientid:
+GET api/v3/auth_clientid
 
 # Response
 {
@@ -40,10 +40,10 @@ GET api/v3/auth_clientid:
 }
 ```
 
-Add cliendid
+Add cliendid:
 ```
 # Request
-POST api/v3/auth_clientid:
+POST api/v3/auth_clientid
 
 # Response
 {
