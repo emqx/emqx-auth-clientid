@@ -27,6 +27,11 @@
                       , create_default_app/0
                       , default_auth_header/0]).
 
+-import(emqx_ct_helpers, [ start_apps/1
+                         , stop_apps/1
+                         , deps_path/2
+                         ]).
+
 -define(HOST, "http://127.0.0.1:8080/").
 
 -define(API_VERSION, "v3").
@@ -40,7 +45,7 @@ groups() ->
     [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config, t_http_api]}].
 
 init_per_suite(Config) ->
-    emqx_ct_helpers:start_apps([emqx, emqx_auth_clientid, emqx_management], [{plugins_loaded_file, emqx, "test/emqx_SUITE_data/loaded_plugins"}]),
+    start_apps([emqx_auth_clientid, emqx_management]),
     application:set_env(emqx, allow_anonymous, false),
     application:set_env(emqx, enable_acl_cache, false),
     ekka_mnesia:start(),
@@ -49,7 +54,7 @@ init_per_suite(Config) ->
     Config.
 
 end_per_suite(_Config) ->
-    emqx_ct_helpers:stop_apps([emqx_auth_clientid, emqx_management, emqx]),
+    stop_apps([emqx_auth_clientid, emqx_management, emqx]),
     ekka_mnesia:ensure_stopped().
 
 emqx_auth_clientid_api(_Config) ->
