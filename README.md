@@ -40,7 +40,7 @@ GET api/v3/auth_clientid
 }
 ```
 
-Add cliendid:
+Add clientid:
 ```
 # Request
 POST api/v3/auth_clientid
