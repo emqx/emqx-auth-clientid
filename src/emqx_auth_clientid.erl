@@ -16,6 +16,12 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
+%% Mnesia bootstrap
+-export([mnesia/1]).
+
+-boot_mnesia({mnesia, [boot]}).
+-copy_mnesia({mnesia, [copy]}).
+
 %% CLI callbacks
 -export([cli/1]).
 
@@ -32,8 +38,7 @@
 -export([unwrap_salt/1]).
 
 %% Auth callbacks
--export([ init/0
-        , check/2
+-export([ check/2
         , description/0
         ]).
 
@@ -43,9 +48,21 @@
 
 -record(?TAB, {client_id, password}).
 
-%-----------------------------------------------------------------------------
-% CLI
-%-----------------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
+%% Mnesia bootstrap
+%%-----------------------------------------------------------------------------
+
+mnesia(boot) ->
+    ok = ekka_mnesia:create_table(?TAB, [
+            {disc_copies, [node()]},
+            {attributes, record_info(fields, ?TAB)}]);
+
+mnesia(copy) ->
+    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
+
+%%-----------------------------------------------------------------------------
+%% CLI
+%%-----------------------------------------------------------------------------
 
 cli(["list"]) ->
     if_enabled(fun() ->
@@ -128,14 +145,16 @@ all_clientids() ->
 remove_clientid(ClientId) ->
     ret(mnesia:transaction(fun mnesia:delete/1, [{?TAB, ClientId}])).
 
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+    HashPasswd.
+
+%% @private
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
 
-init() ->
-    ok = ekka_mnesia:create_table(?TAB, [
-            {disc_copies, [node()]},
-            {attributes, record_info(fields, ?TAB)}]),
-    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
+%%------------------------------------------------------------------------------
+%% Auth callbacks
+%%------------------------------------------------------------------------------
 
 check(Credentials = #{client_id := ClientId, password := Password}, _State)
     when ?UNDEFINED(ClientId); ?UNDEFINED(Password) ->
@@ -149,9 +168,6 @@ check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type 
                 false -> {stop, Credentials#{auth_result => password_error}}
             end
     end.
-
-unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
-    HashPasswd.
 
 description() ->
     "ClientId Authentication Module".
