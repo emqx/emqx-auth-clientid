@@ -42,7 +42,7 @@ all() ->
     [{group, emqx_auth_clientid}].
 
 groups() ->
-    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config, t_http_api]}].
+    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, t_http_api]}].
 
 init_per_suite(Config) ->
     start_apps([emqx_auth_clientid, emqx_management]),
@@ -67,22 +67,6 @@ emqx_auth_clientid_api(_Config) ->
     {ok, _} = emqx_access_control:authenticate(User),
     ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
     {error, _} = emqx_access_control:authenticate(User).
-
-change_config(_Config) ->
-    application:stop(emqx_auth_clientid),
-    application:set_env(emqx_auth_clientid, client_list,
-                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
-    ok = application:start(emqx_auth_clientid),
-    User1 = #{client_id => <<"id">>,
-              password => <<"password">>},    
-    User2 = #{client_id => <<"dev:devid">>,
-             password => <<"passwd2">>},
-    {ok, _} = emqx_access_control:authenticate(User1),
-    {error, _} = emqx_access_control:authenticate(User1#{password => <<"passwd3">>}),
-    {ok, _} = emqx_access_control:authenticate(User2),
-    %% clean data
-    ok = emqx_auth_clientid:remove_clientid(<<"id1">>),
-    ok = emqx_auth_clientid:remove_clientid(<<"dev:devid">>).
 
 cli(_Config) ->
     [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
