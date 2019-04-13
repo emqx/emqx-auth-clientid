@@ -16,9 +16,12 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
-% CLI callbacks
+%% CLI callbacks
 -export([cli/1]).
+
 -export([is_enabled/0]).
+
+%% APIs
 -export([ add_clientid/2
         , update_password/2
         , lookup_clientid/1
@@ -26,20 +29,23 @@
         , all_clientids/0
         ]).
 
--export([ init/1
+-export([unwrap_salt/1]).
+
+%% Auth callbacks
+-export([ init/0
         , check/2
         , description/0
         ]).
 
--export([unwrap_salt/1]).
-
 -define(TAB, ?MODULE).
--record(?TAB, {client_id, password}).
+
 -define(UNDEFINED(S), (S =:= undefined)).
 
-%-----------------------------------------------------------------------------
-% CLI
-%-----------------------------------------------------------------------------
+-record(?TAB, {client_id, password}).
+
+%%-----------------------------------------------------------------------------
+%% CLI
+%%-----------------------------------------------------------------------------
 
 cli(["list"]) ->
     if_enabled(fun() ->
@@ -122,21 +128,22 @@ all_clientids() ->
 remove_clientid(ClientId) ->
     ret(mnesia:transaction(fun mnesia:delete/1, [{?TAB, ClientId}])).
 
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+    HashPasswd.
+
+%% @private
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
 
-init(ClientList) ->
+%%------------------------------------------------------------------------------
+%% Auth callbacks
+%%------------------------------------------------------------------------------
+
+init() ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
-    ok = ekka_mnesia:copy_table(?TAB, disc_copies),
-    Clients = [r(ClientId, Password) || {ClientId, Password} <- ClientList],
-    mnesia:transaction(fun() -> [mnesia:write(C) || C <- Clients] end),
-    ok.
-
-r(ClientId, Password) ->
-    #?TAB{client_id = iolist_to_binary(ClientId),
-          password  = encrypted_data(iolist_to_binary(Password))}.
+    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 check(Credentials = #{client_id := ClientId, password := Password}, _State)
     when ?UNDEFINED(ClientId); ?UNDEFINED(Password) ->
@@ -150,9 +157,6 @@ check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type 
                 false -> {stop, Credentials#{auth_result => password_error}}
             end
     end.
-
-unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
-    HashPasswd.
 
 description() ->
     "ClientId Authentication Module".
@@ -168,3 +172,4 @@ hash(Password, SaltBin, HashType) ->
 salt() ->
     rand:seed(exsplus, erlang:timestamp()),
     Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+
