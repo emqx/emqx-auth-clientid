@@ -16,12 +16,6 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
-%% Mnesia bootstrap
--export([mnesia/1]).
-
--boot_mnesia({mnesia, [boot]}).
--copy_mnesia({mnesia, [copy]}).
-
 %% CLI callbacks
 -export([cli/1]).
 
@@ -38,7 +32,8 @@
 -export([unwrap_salt/1]).
 
 %% Auth callbacks
--export([ check/2
+-export([ init/0
+        , check/2
         , description/0
         ]).
 
@@ -47,18 +42,6 @@
 -define(UNDEFINED(S), (S =:= undefined)).
 
 -record(?TAB, {client_id, password}).
-
-%%-----------------------------------------------------------------------------
-%% Mnesia bootstrap
-%%-----------------------------------------------------------------------------
-
-mnesia(boot) ->
-    ok = ekka_mnesia:create_table(?TAB, [
-            {disc_copies, [node()]},
-            {attributes, record_info(fields, ?TAB)}]);
-
-mnesia(copy) ->
-    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 %%-----------------------------------------------------------------------------
 %% CLI
@@ -155,6 +138,12 @@ ret({aborted, Error}) -> {error, Error}.
 %%------------------------------------------------------------------------------
 %% Auth callbacks
 %%------------------------------------------------------------------------------
+
+init() ->
+    ok = ekka_mnesia:create_table(?TAB, [
+            {disc_copies, [node()]},
+            {attributes, record_info(fields, ?TAB)}]),
+    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 check(Credentials = #{client_id := ClientId, password := Password}, _State)
     when ?UNDEFINED(ClientId); ?UNDEFINED(Password) ->
