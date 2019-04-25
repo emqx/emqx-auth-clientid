@@ -15,7 +15,7 @@ dep_cuttlefish = git-emqx https://github.com/emqx/cuttlefish v2.2.1
 dep_emqx_management = git-emqx https://github.com/emqx/emqx-management $(BRANCH)
 
 TEST_DEPS = emqx_ct_helper emqx_management
-dep_emqx_ct_helper = git-emqx https://github.com/emqx/emqx-ct-helpers $(BRANCH)
+dep_emqx_ct_helper = git-emqx https://github.com/emqx/emqx-ct-helpers v1.0
 dep_emqx_management = git-emqx https://github.com/emqx/emqx-management $(BRANCH)
 
 NO_AUTOPATCH = cuttlefish
