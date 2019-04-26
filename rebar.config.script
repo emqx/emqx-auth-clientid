@@ -9,4 +9,3 @@ CONFIG1 = case os:getenv("TRAVIS") of
           end,
 
 CONFIG1.
-

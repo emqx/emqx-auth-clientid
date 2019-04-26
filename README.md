@@ -16,9 +16,6 @@ Configuration
 etc/emqx_auth_clientid.conf:
 
 ```
-##auth.client.$N.clientid = clientid
-##auth.client.$N.password = passwd
-
 ## Password hash.
 ##
 ## Value: plain | md5 | sha | sha256
@@ -29,6 +26,7 @@ auth.client.password_hash = sha256
 ------------
 
 List all clientids:
+
 ```
 # Request
 GET api/v3/auth_clientid
@@ -36,11 +34,12 @@ GET api/v3/auth_clientid
 # Response
 {
     "code": 0,
-    "data": ["username1"]
+    "data": ["clientid1"]
 }
 ```
 
 Add clientid:
+
 ```
 # Request
 POST api/v3/auth_clientid
@@ -69,10 +68,10 @@ PUT api/v3/auth_clientid/$CLIENTID
 {
     "code": 0
 }
-
 ```
 
 Lookup a clientid info:
+
 ```
 # Request
 GET api/v3/auth_clientid/$CLIENTID
@@ -97,7 +96,6 @@ DELETE api/v3/auth_clientid/$CLIENTID
 {
     "code": 0
 }
-
 ```
 
 Load the Plugin
