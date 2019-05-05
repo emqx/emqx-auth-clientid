@@ -19,3 +19,5 @@ logs/
 test/ct.cover.spec
 erlang.mk
 _build/
+rebar.lock
+rebar3.crashdump
