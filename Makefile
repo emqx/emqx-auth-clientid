@@ -1,18 +1,25 @@
-REBAR = rebar3 as test
+## shallow clone for speed
+
+REBAR_GIT_CLONE_OPTIONS += --depth 1
+export REBAR_GIT_CLONE_OPTIONS
+
+REBAR = rebar3
 all: compile
 
 compile:
 	$(REBAR) compile
 
-clean:
-	$(REBAR) clean
+clean: distclean
 
 ct: compile
-	$(REBAR) ct
+	$(REBAR) as test ct
 
 eunit: compile
-	$(REBAR) eunit
+	$(REBAR) as test eunit
 
 xref:
 	$(REBAR) xref
 
+distclean:
+	@rm -rf _build
+	@rm -f data/app.*.config data/vm.*.args rebar.lock
