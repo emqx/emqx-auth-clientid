@@ -48,7 +48,7 @@ end_per_suite(_Config) ->
     emqx_ct_helpers:stop_apps([emqx_auth_clientid, emqx_management]).
 
 set_special_configs(emqx) ->
-    application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, allow_anonymous, true),
     application:set_env(emqx, enable_acl_cache, false),
     LoadedPluginPath = filename:join(["test", "emqx_SUITE_data", "loaded_plugins"]),
     application:set_env(emqx, plugins_loaded_file,
@@ -64,13 +64,17 @@ set_special_configs(_App) ->
 t_managing(_Config) ->
     ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
     User = #{client_id => <<"emq_auth_clientid">>,
-             username => <<"user">>,
              password => <<"password">>},
     [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
-    {ok, _} = emqx_access_control:authenticate(User),
+    {ok, #{auth_result := success,
+           anonymous := false}} = emqx_access_control:authenticate(User),
+
+    {error, _} = emqx_access_control:authenticate(User#{password := <<"error_passwd">>}),
+
     ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
-    {error, _} = emqx_access_control:authenticate(User).
+    {ok, #{auth_result := success,
+           anonymous := true}} = emqx_access_control:authenticate(User).
 
 t_cli(_Config) ->
     [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
