@@ -21,16 +21,11 @@
 -include_lib("common_test/include/ct.hrl").
 
 -import(emqx_ct_http, [ request_api/3
-                      , request_api/4
                       , request_api/5
                       , get_http_data/1
                       , create_default_app/0
-                      , default_auth_header/0]).
-
--import(emqx_ct_helpers, [ start_apps/1
-                         , stop_apps/1
-                         , deps_path/2
-                         ]).
+                      , default_auth_header/0
+                      ]).
 
 -define(HOST, "http://127.0.0.1:8080/").
 
@@ -42,49 +37,46 @@ all() ->
     [{group, emqx_auth_clientid}].
 
 groups() ->
-    [{emqx_auth_clientid, [sequence], [emqx_auth_clientid_api, cli, change_config, t_http_api]}].
+    [{emqx_auth_clientid, [sequence], [t_managing, t_cli, t_http_api]}].
 
 init_per_suite(Config) ->
-    start_apps([emqx_auth_clientid, emqx_management]),
-    application:set_env(emqx, allow_anonymous, false),
-    application:set_env(emqx, enable_acl_cache, false),
-    ekka_mnesia:start(),
-    emqx_mgmt_auth:mnesia(boot),
+    emqx_ct_helpers:start_apps([emqx_auth_clientid, emqx_management], fun set_special_configs/1),
     create_default_app(),
     Config.
 
 end_per_suite(_Config) ->
-    stop_apps([emqx_auth_clientid, emqx_management, emqx]),
-    ekka_mnesia:ensure_stopped().
+    emqx_ct_helpers:stop_apps([emqx_auth_clientid, emqx_management]).
 
-emqx_auth_clientid_api(_Config) ->
+set_special_configs(emqx) ->
+    application:set_env(emqx, allow_anonymous, true),
+    application:set_env(emqx, enable_acl_cache, false),
+    LoadedPluginPath = filename:join(["test", "emqx_SUITE_data", "loaded_plugins"]),
+    application:set_env(emqx, plugins_loaded_file,
+                        emqx_ct_helpers:deps_path(emqx, LoadedPluginPath));
+
+set_special_configs(_App) ->
+    ok.
+
+%%------------------------------------------------------------------------------
+%% Testcases
+%%------------------------------------------------------------------------------
+
+t_managing(_Config) ->
     ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
     User = #{client_id => <<"emq_auth_clientid">>,
-             username => <<"user">>,
              password => <<"password">>},
     [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
-    {ok, _} = emqx_access_control:authenticate(User),
+    {ok, #{auth_result := success,
+           anonymous := false}} = emqx_access_control:authenticate(User),
+
+    {error, _} = emqx_access_control:authenticate(User#{password := <<"error_passwd">>}),
+
     ok = emqx_auth_clientid:remove_clientid(<<"emq_auth_clientid">>),
-    {error, _} = emqx_access_control:authenticate(User).
+    {ok, #{auth_result := success,
+           anonymous := true}} = emqx_access_control:authenticate(User).
 
-change_config(_Config) ->
-    application:stop(emqx_auth_clientid),
-    application:set_env(emqx_auth_clientid, client_list,
-                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
-    ok = application:start(emqx_auth_clientid),
-    User1 = #{client_id => <<"id">>,
-              password => <<"password">>},    
-    User2 = #{client_id => <<"dev:devid">>,
-             password => <<"passwd2">>},
-    {ok, _} = emqx_access_control:authenticate(User1),
-    {error, _} = emqx_access_control:authenticate(User1#{password => <<"passwd3">>}),
-    {ok, _} = emqx_access_control:authenticate(User2),
-    %% clean data
-    ok = emqx_auth_clientid:remove_clientid(<<"id1">>),
-    ok = emqx_auth_clientid:remove_clientid(<<"dev:devid">>).
-
-cli(_Config) ->
+t_cli(_Config) ->
     [mnesia:dirty_delete({emqx_auth_clientid, ClientId}) ||  ClientId <- mnesia:dirty_all_keys(emqx_auth_clientid)],
     emqx_auth_clientid:cli(["add", "clientid", "password"]),
     [{emqx_auth_clientid, <<"clientid">>, <<Salt:4/binary, Hash/binary>>}] =
@@ -136,5 +128,10 @@ t_http_api(_Config) ->
     [] = emqx_auth_clientid:lookup_clientid(<<"clientid">>),
     ok.
 
+%%------------------------------------------------------------------------------
+%% Helpers
+%%------------------------------------------------------------------------------
+
 api_path(Parts) ->
     ?HOST ++ filename:join([?BASE_PATH, ?API_VERSION] ++ Parts).
+
