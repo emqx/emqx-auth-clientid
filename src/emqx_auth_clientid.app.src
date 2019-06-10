@@ -3,5 +3,5 @@
               {vsn,"git"},
               {modules,[]},
               {registered,[emqx_auth_clientid_sup]},
-              {applications,[kernel,stdlib,clique]},
+              {applications,[kernel,stdlib,clique,minirest, emqx_passwd]},
               {mod,{emqx_auth_clientid_app,[]}}]}.
