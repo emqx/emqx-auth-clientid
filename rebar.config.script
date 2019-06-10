@@ -1,3 +1,6 @@
+%%-*- mode: erlang -*-
+%% emqx_auth_clientid rebar.config.script
+
 CONFIG1 = case os:getenv("TRAVIS") of
               "true" ->
                   JobId = os:getenv("TRAVIS_JOB_ID"),
@@ -8,12 +11,23 @@ CONFIG1 = case os:getenv("TRAVIS") of
                   CONFIG
           end,
 
+{ok, REMP} = re:compile("release"),
+
 CUR_BRANCH = os:cmd("git branch | grep -e '^*' | cut -d' ' -f 2") -- "\n",
 
-BRANCH = case lists:member(CUR_BRANCH, ["master", "develop"]) of
-             true -> CUR_BRANCH;
-             false -> "develop"
-         end,
+MATCH_BRANCH = fun (BranchName) when BranchName =:= "master";
+                                     BranchName =:= "develop" ->
+                       BranchName;
+                   (BranchName) ->
+                       case re:run(BranchName, REMP) of
+                           {match, [{0, 7}]} ->
+                               BranchName;
+                           _nomatch ->
+                               "develop"
+                       end
+               end,
+
+BRANCH = MATCH_BRANCH(CUR_BRANCH),
 
 DEPS = case lists:keyfind(deps, 1, CONFIG1) of
            {_, Deps} -> Deps;
