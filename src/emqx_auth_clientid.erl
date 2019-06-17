@@ -33,6 +33,7 @@
 
 %% Auth callbacks
 -export([ init/0
+        , register_metrics/0
         , check/2
         , description/0
         ]).
@@ -143,13 +144,22 @@ init() ->
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
+register_metrics() ->
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.clientid.succeed', 'auth.clientid.fail', 'auth.clientid.ignore']].
+
 check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
-        [] -> ok;
+        [] ->
+            emqx_metrics:inc('auth.clientid.ignore'),
+            ok;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
-                true -> {stop, Credentials#{auth_result => success, anonymous => false}};
-                false -> {stop, Credentials#{auth_result => password_error, anonymous => false}}
+                true ->
+                    emqx_metrics:inc('auth.clientid.succeed'),
+                    {stop, Credentials#{auth_result => success, anonymous => false}};
+                false ->
+                    emqx_metrics:inc('auth.clientid.fail'),
+                    {stop, Credentials#{auth_result => password_error, anonymous => false}}
             end
     end.
 
