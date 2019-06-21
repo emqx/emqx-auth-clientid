@@ -18,7 +18,7 @@
 
 -behaviour(application).
 
--emqx_plugin(?MODULE).
+-emqx_plugin(auth).
 
 -export([ start/2
         , stop/1
@@ -30,6 +30,7 @@
 
 start(_Type, _Args) ->
     emqx_ctl:register_command(clientid, {?APP, cli}, []),
+    emqx_auth_clientid:register_metrics(),
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
     emqx:hook('client.authenticate', fun emqx_auth_clientid:check/2, [Params]),
