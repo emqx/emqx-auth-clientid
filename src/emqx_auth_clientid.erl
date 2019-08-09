@@ -34,7 +34,7 @@
 %% Auth callbacks
 -export([ init/0
         , register_metrics/0
-        , check/2
+        , check/3
         , description/0
         ]).
 
@@ -147,7 +147,7 @@ init() ->
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ['auth.clientid.success', 'auth.clientid.failure', 'auth.clientid.ignore']].
 
-check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type := HashType}) ->
+check(#{client_id := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
         [] ->
             emqx_metrics:inc('auth.clientid.ignore'),
@@ -156,10 +156,10 @@ check(Credentials = #{client_id := ClientId, password := Password}, #{hash_type 
             case Hash =:= hash(Password, Salt, HashType) of
                 true ->
                     emqx_metrics:inc('auth.clientid.success'),
-                    {stop, Credentials#{auth_result => success, anonymous => false}};
+                    {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
                     emqx_metrics:inc('auth.clientid.failure'),
-                    {stop, Credentials#{auth_result => password_error, anonymous => false}}
+                    {stop, AuthResult#{auth_result => password_error, anonymous => false}}
             end
     end.
 
@@ -171,6 +171,8 @@ encrypted_data(Password) ->
     SaltBin = salt(),
     <<SaltBin/binary, (hash(Password, SaltBin, HashType))/binary>>.
 
+hash(undefined, SaltBin, HashType) ->
+    hash(<<>>, SaltBin, HashType);
 hash(Password, SaltBin, HashType) ->
     emqx_passwd:hash(HashType, <<SaltBin/binary, Password/binary>>).
 
