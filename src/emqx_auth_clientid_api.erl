@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,55 +12,56 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_clientid_api).
 
 -include("emqx_auth_clientid.hrl").
 
+-export([ list/2
+        , lookup/2
+        , add/2
+        , update/2
+        , delete/2
+        ]).
+
 -import(proplists, [get_value/2]).
 -import(minirest,  [return/0, return/1]).
 
--rest_api(#{ name   => list_clientid
-           , method => 'GET'
-           , path   => "/auth_clientid"
-           , func   => list
-           , descr  => "List available clientid in the cluster"
+-rest_api(#{name   => list_clientid,
+            method => 'GET',
+            path   => "/auth_clientid",
+            func   => list,
+            descr  => "List available clientid in the cluster"
            }).
 
--rest_api(#{ name   => lookup_clientid
-           , method => 'GET'
-           , path   => "/auth_clientid/:bin:clientid"
-           , func   => lookup
-           , descr  => "Lookup clientid in the cluster"
+-rest_api(#{name   => lookup_clientid,
+            method => 'GET',
+            path   => "/auth_clientid/:bin:clientid",
+            func   => lookup,
+            descr  => "Lookup clientid in the cluster"
            }).
 
--rest_api(#{ name   => add_clientid
-           , method => 'POST'
-           , path   => "/auth_clientid"
-           , func   => add
-           , descr  => "Add clientid in the cluster"
+-rest_api(#{name   => add_clientid,
+            method => 'POST',
+            path   => "/auth_clientid",
+            func   => add,
+            descr  => "Add clientid in the cluster"
            }).
 
--rest_api(#{ name   => update_clientid
-           , method => 'PUT'
-           , path   => "/auth_clientid/:bin:clientid"
-           , func   => update
-           , descr  => "Update clientid in the cluster"
+-rest_api(#{name   => update_clientid,
+            method => 'PUT',
+            path   => "/auth_clientid/:bin:clientid",
+            func   => update,
+            descr  => "Update clientid in the cluster"
            }).
 
--rest_api(#{ name   => delete_clientid
-           , method => 'DELETE'
-           , path   => "/auth_clientid/:bin:clientid"
-           , func   => delete
-           , descr  => "Delete clientid in the cluster"
+-rest_api(#{name   => delete_clientid,
+            method => 'DELETE',
+            path   => "/auth_clientid/:bin:clientid",
+            func   => delete,
+            descr  => "Delete clientid in the cluster"
            }).
-
- -export([ list/2
-         , lookup/2
-         , add/2
-         , update/2
-         , delete/2
-         ]).
 
 list(_Bindings, _Params) ->
     return({ok, emqx_auth_clientid:all_clientids()}).
@@ -82,7 +84,7 @@ add(_Bindings, Params) ->
 update(#{clientid := ClientId}, Params) ->
     Password = get_value(<<"password">>, Params),
     case validate([password], [Password]) of
-        ok -> 
+        ok ->
             case emqx_auth_clientid:update_password(ClientId, Password) of
                 ok -> return();
                 Error -> return(Error)
