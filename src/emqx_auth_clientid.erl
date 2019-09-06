@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_clientid).
 
@@ -40,50 +42,56 @@
 
 -define(TAB, ?MODULE).
 
+-define(AUTH_METRICS,
+        ['auth.clientid.success',
+         'auth.clientid.failure',
+         'auth.clientid.ignore'
+        ]).
+
 -record(?TAB, {client_id, password}).
 
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% CLI
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 cli(["list"]) ->
     if_enabled(fun() ->
         ClientIds = mnesia:dirty_all_keys(?TAB),
-        [emqx_cli:print("~s~n", [ClientId]) || ClientId <- ClientIds]
+        [emqx_mgmt:print("~s~n", [ClientId]) || ClientId <- ClientIds]
     end);
 
 cli(["add", ClientId, Password]) ->
     if_enabled(fun() ->
         Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
-        emqx_cli:print("~p~n", [Ok])
+        emqx_mgmt:print("~p~n", [Ok])
     end);
 
 cli(["update", ClientId, NewPassword]) ->
     if_enabled(fun() ->
         Ok = update_password(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
-        emqx_cli:print("~p~n", [Ok])
+        emqx_mgmt:print("~p~n", [Ok])
     end);
 
 cli(["del", ClientId]) ->
     if_enabled(fun() ->
-        emqx_cli:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
+        emqx_mgmt:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
     end);
 
 cli(_) ->
-    emqx_cli:usage([{"clientid list", "List ClientId"},
-                    {"clientid add <ClientId> <Password>", "Add ClientId"},
-                    {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
-                    {"clientid del <ClientId>", "Delete ClientId"}]).
+    emqx_mgmt:usage([{"clientid list", "List ClientId"},
+                     {"clientid add <ClientId> <Password>", "Add ClientId"},
+                     {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
+                     {"clientid del <ClientId>", "Delete ClientId"}]).
 
 if_enabled(Fun) ->
     case is_enabled() of true -> Fun(); false -> hint() end.
 
 hint() ->
-    emqx_cli:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
+    emqx_mgmt:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
 
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% API
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 is_enabled() ->
     lists:member(?TAB, mnesia:system_info(tables)).
@@ -134,9 +142,9 @@ unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
 
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% Auth callbacks
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 init() ->
     ok = ekka_mnesia:create_table(?TAB, [
@@ -145,7 +153,7 @@ init() ->
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.clientid.success', 'auth.clientid.failure', 'auth.clientid.ignore']].
+    [emqx_metrics:new(MetricName) || MetricName <- ?AUTH_METRICS].
 
 check(#{client_id := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
