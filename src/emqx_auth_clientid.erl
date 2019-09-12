@@ -57,37 +57,37 @@
 cli(["list"]) ->
     if_enabled(fun() ->
         ClientIds = mnesia:dirty_all_keys(?TAB),
-        [emqx_mgmt:print("~s~n", [ClientId]) || ClientId <- ClientIds]
+        [emqx_ctl:print("~s~n", [ClientId]) || ClientId <- ClientIds]
     end);
 
 cli(["add", ClientId, Password]) ->
     if_enabled(fun() ->
         Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
-        emqx_mgmt:print("~p~n", [Ok])
+        emqx_ctl:print("~p~n", [Ok])
     end);
 
 cli(["update", ClientId, NewPassword]) ->
     if_enabled(fun() ->
         Ok = update_password(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
-        emqx_mgmt:print("~p~n", [Ok])
+        emqx_ctl:print("~p~n", [Ok])
     end);
 
 cli(["del", ClientId]) ->
     if_enabled(fun() ->
-        emqx_mgmt:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
+        emqx_ctl:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
     end);
 
 cli(_) ->
-    emqx_mgmt:usage([{"clientid list", "List ClientId"},
-                     {"clientid add <ClientId> <Password>", "Add ClientId"},
-                     {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
-                     {"clientid del <ClientId>", "Delete ClientId"}]).
+    emqx_ctl:usage([{"clientid list", "List ClientId"},
+                    {"clientid add <ClientId> <Password>", "Add ClientId"},
+                    {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
+                    {"clientid del <ClientId>", "Delete ClientId"}]).
 
 if_enabled(Fun) ->
     case is_enabled() of true -> Fun(); false -> hint() end.
 
 hint() ->
-    emqx_mgmt:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
+    emqx_ctl:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
 
 %%--------------------------------------------------------------------
 %% API
