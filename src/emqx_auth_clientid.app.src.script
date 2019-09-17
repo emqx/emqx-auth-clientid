@@ -1,0 +1,13 @@
+%%-*- mode: erlang -*-
+%% .app.src.script
+
+case os:getenv("EMQX_DEPS_DEFAULT_VSN") of
+    false -> CONFIG; % env var not defined
+    []    -> CONFIG; % env var set to empty string
+    Tag ->
+       [begin
+           AppConf0 = lists:keystore(vsn, 1, AppConf, {vsn, Tag}),
+           {application, App, AppConf0}
+        end || Conf = {application, App, AppConf} <- CONFIG]
+end.
+
