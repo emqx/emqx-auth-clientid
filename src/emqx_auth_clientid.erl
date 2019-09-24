@@ -48,7 +48,7 @@
          'auth.clientid.ignore'
         ]).
 
--record(?TAB, {client_id, password}).
+-record(?TAB, {clientid, password}).
 
 %%--------------------------------------------------------------------
 %% CLI
@@ -99,10 +99,10 @@ is_enabled() ->
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
-    Client = #?TAB{client_id = ClientId, password = encrypted_data(Password)},
+    Client = #?TAB{clientid = ClientId, password = encrypted_data(Password)},
     ret(mnesia:transaction(fun do_add_clientid/1, [Client])).
 
-do_add_clientid(Client = #?TAB{client_id = ClientId}) ->
+do_add_clientid(Client = #?TAB{clientid = ClientId}) ->
     case mnesia:read(?TAB, ClientId) of
         [] -> mnesia:write(Client);
         [_|_] -> mnesia:abort(exitsted)
@@ -111,10 +111,10 @@ do_add_clientid(Client = #?TAB{client_id = ClientId}) ->
 %% @doc Update clientid with newpassword
 -spec(update_password(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 update_password(ClientId, NewPassword) ->
-    Client = #?TAB{client_id = ClientId, password = encrypted_data(NewPassword)},
+    Client = #?TAB{clientid = ClientId, password = encrypted_data(NewPassword)},
     ret(mnesia:transaction(fun do_update_password/1, [Client])).
 
-do_update_password(Client = #?TAB{client_id = ClientId}) ->
+do_update_password(Client = #?TAB{clientid = ClientId}) ->
     case mnesia:read(?TAB, ClientId) of
         [_|_] -> mnesia:write(Client);
         [] -> mnesia:abort(noexitsted)
@@ -155,7 +155,7 @@ init() ->
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ?AUTH_METRICS].
 
-check(#{client_id := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
+check(#{clientid := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
         [] -> emqx_metrics:inc('auth.clientid.ignore');
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
