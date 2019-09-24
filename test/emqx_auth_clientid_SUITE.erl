@@ -63,7 +63,7 @@ set_special_configs(_App) ->
 
 t_managing(_Config) ->
     ok = emqx_auth_clientid:add_clientid(<<"emq_auth_clientid">>, <<"password">>),
-    User = #{client_id => <<"emq_auth_clientid">>,
+    User = #{clientid => <<"emq_auth_clientid">>,
              password => <<"password">>},
     [{emqx_auth_clientid,<<"emq_auth_clientid">>, _}] =
     emqx_auth_clientid:lookup_clientid(<<"emq_auth_clientid">>),
