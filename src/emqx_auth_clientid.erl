@@ -32,7 +32,7 @@
 -export([unwrap_salt/1]).
 
 %% Auth callbacks
--export([ init/0
+-export([ init/1
         , register_metrics/0
         , check/2
         , description/0
@@ -138,11 +138,16 @@ ret({aborted, Error}) -> {error, Error}.
 %% Auth callbacks
 %%------------------------------------------------------------------------------
 
-init() ->
+init(DefaultIds) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
+    lists:foreach(fun add_default_clientid/1, DefaultIds),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
+
+%% @private
+add_default_clientid({ClientId, Password}) ->
+    add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)).
 
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ['auth.clientid.success', 'auth.clientid.failure', 'auth.clientid.ignore']].

@@ -34,7 +34,8 @@ start(_Type, _Args) ->
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
     emqx:hook('client.authenticate', fun emqx_auth_clientid:check/2, [Params]),
-    ok = emqx_auth_clientid:init(),
+    DefaultIds = application:get_env(?APP, client_list, []),
+    ok = emqx_auth_clientid:init(DefaultIds),
     emqx_auth_clientid_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
