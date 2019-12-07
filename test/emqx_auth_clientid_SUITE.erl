@@ -35,7 +35,7 @@
 -define(CLIENTID,  <<"client_id_for_ct">>).
 -define(PASSWORD,  <<"password">>).
 -define(NPASSWORD, <<"password1">>).
--define(USER,      #{clientid => ?CLIENTID}).
+-define(USER,      #{clientid => ?CLIENTID, zone => external}).
 
 all() ->
     emqx_ct:all(?MODULE).
