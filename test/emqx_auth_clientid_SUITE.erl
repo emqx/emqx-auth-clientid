@@ -28,7 +28,7 @@
                       , default_auth_header/0
                       ]).
 
--define(HOST, "http://127.0.0.1:8080/").
+-define(HOST, "http://127.0.0.1:8081/").
 -define(API_VERSION, "v3").
 -define(BASE_PATH, "api").
 
