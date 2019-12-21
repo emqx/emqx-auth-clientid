@@ -16,6 +16,8 @@
 
 -module(emqx_auth_clientid).
 
+-include("emqx_auth_clientid.hrl").
+
 -include_lib("emqx/include/emqx.hrl").
 
 %% CLI callbacks
@@ -41,12 +43,6 @@
         ]).
 
 -define(TAB, ?MODULE).
-
--define(AUTH_METRICS,
-        ['auth.clientid.success',
-         'auth.clientid.failure',
-         'auth.clientid.ignore'
-        ]).
 
 -record(?TAB, {clientid, password}).
 
@@ -162,14 +158,14 @@ register_metrics() ->
 
 check(#{clientid := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
-        [] -> emqx_metrics:inc('auth.clientid.ignore');
+        [] -> emqx_metrics:inc(?AUTH_METRIC(ignore));
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
                 true ->
-                    emqx_metrics:inc('auth.clientid.success'),
+                    emqx_metrics:inc(?AUTH_METRIC(success)),
                     {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
-                    emqx_metrics:inc('auth.clientid.failure'),
+                    emqx_metrics:inc(?AUTH_METRIC(failure)),
                     {stop, AuthResult#{auth_result => password_error, anonymous => false}}
             end
     end.
