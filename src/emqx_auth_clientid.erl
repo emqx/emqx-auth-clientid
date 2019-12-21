@@ -158,14 +158,14 @@ register_metrics() ->
 
 check(#{clientid := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
-        [] -> emqx_metrics:inc(?AUTH_METRIC(ignore));
+        [] -> emqx_metrics:inc(?AUTH_METRICS(ignore));
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
                 true ->
-                    emqx_metrics:inc(?AUTH_METRIC(success)),
+                    emqx_metrics:inc(?AUTH_METRICS(success)),
                     {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
-                    emqx_metrics:inc(?AUTH_METRIC(failure)),
+                    emqx_metrics:inc(?AUTH_METRICS(failure)),
                     {stop, AuthResult#{auth_result => password_error, anonymous => false}}
             end
     end.

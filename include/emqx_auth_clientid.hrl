@@ -6,5 +6,8 @@
         ignore = 'client.auth.ignore'
     }).
 
--define(AUTH_METRICS, tl(tuple_to_list(#auth_metrics{}))).
--define(AUTH_METRIC(K), #auth_metrics{}#auth_metrics.K).
+-define(METRICS(Type), tl(tuple_to_list(#Type{}))).
+-define(METRICS(Type, K), #Type{}#Type.K).
+
+-define(AUTH_METRICS, ?METRICS(auth_metrics)).
+-define(AUTH_METRICS(K), ?METRICS(auth_metrics, K)).
