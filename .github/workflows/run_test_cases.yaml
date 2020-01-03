@@ -2,13 +2,13 @@ name: Run test cases
 
 on: [push, pull_request]
 
-jobs:
-    runs-on: ubuntu-latest
-      
-    container:
-        image: erlang:22.1
-    
+jobs:    
     run_test_cases:
+        runs-on: ubuntu-latest
+      
+        container:
+            image: erlang:22.1
+            
         steps:
             - uses: actions/checkout@v2
             - name: run test cases
