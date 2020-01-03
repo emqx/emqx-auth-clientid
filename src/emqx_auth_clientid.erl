@@ -16,6 +16,8 @@
 
 -module(emqx_auth_clientid).
 
+-include("emqx_auth_clientid.hrl").
+
 -include_lib("emqx/include/emqx.hrl").
 
 %% CLI callbacks
@@ -34,19 +36,13 @@
 -export([unwrap_salt/1]).
 
 %% Auth callbacks
--export([ init/0
+-export([ init/1
         , register_metrics/0
         , check/3
         , description/0
         ]).
 
 -define(TAB, ?MODULE).
-
--define(AUTH_METRICS,
-        ['auth.clientid.success',
-         'auth.clientid.failure',
-         'auth.clientid.ignore'
-        ]).
 
 -record(?TAB, {clientid, password}).
 
@@ -146,25 +142,30 @@ ret({aborted, Error}) -> {error, Error}.
 %% Auth callbacks
 %%--------------------------------------------------------------------
 
-init() ->
+init(DefaultIds) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
+    lists:foreach(fun add_default_clientid/1, DefaultIds),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
+
+%% @private
+add_default_clientid({ClientId, Password}) ->
+    add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)).
 
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ?AUTH_METRICS].
 
 check(#{clientid := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
-        [] -> emqx_metrics:inc('auth.clientid.ignore');
+        [] -> emqx_metrics:inc(?AUTH_METRICS(ignore));
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
                 true ->
-                    emqx_metrics:inc('auth.clientid.success'),
+                    emqx_metrics:inc(?AUTH_METRICS(success)),
                     {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
-                    emqx_metrics:inc('auth.clientid.failure'),
+                    emqx_metrics:inc(?AUTH_METRICS(failure)),
                     {stop, AuthResult#{auth_result => password_error, anonymous => false}}
             end
     end.

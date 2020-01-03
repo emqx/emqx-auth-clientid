@@ -36,13 +36,12 @@ start(_Type, _Args) ->
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
     emqx:hook('client.authenticate', fun emqx_auth_clientid:check/3, [Params]),
-    ok = emqx_auth_clientid:init(),
-    emqx_auth_clientid_cfg:register(),
+    DefaultIds = application:get_env(?APP, client_list, []),
+    ok = emqx_auth_clientid:init(DefaultIds),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
     emqx:unhook('client.authenticate', fun emqx_auth_clientid:check/3),
-    emqx_auth_clientid_cfg:unregister(),
     emqx_ctl:unregister_command(clientid).
 
 %%--------------------------------------------------------------------
