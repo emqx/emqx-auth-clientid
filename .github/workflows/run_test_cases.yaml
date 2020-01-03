@@ -10,9 +10,10 @@ jobs:
             image: erlang:22.1
             
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v1
             - name: run test cases
               run: |
+                make xref
                 make eunit  
                 make ct
                 make cover
