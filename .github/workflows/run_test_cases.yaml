@@ -1,0 +1,21 @@
+name: Run test cases
+
+on: [push, pull_request]
+
+jobs:
+
+    run_test_cases:
+        steps:
+            - uses: actions/checkout@v2
+            - name: run test cases
+              run: |
+                make eunit  
+                make ct
+                make cover
+            - uses: actions/upload-artifact@v1
+              with:
+                path: _build/test/logs
+            - uses: actions/upload-artifact@v1
+              with:
+                path: _build/test/cover
+
