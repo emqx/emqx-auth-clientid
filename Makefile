@@ -17,6 +17,9 @@ ct: compile
 eunit: compile
 	$(REBAR) as test eunit
 
+cover:
+	$(REBAR) cover
+
 xref:
 	$(REBAR) xref
 
