@@ -29,7 +29,7 @@ List all clientids:
 
 ```
 # Request
-GET api/v3/auth_clientid
+GET api/v4/auth_clientid
 
 # Response
 {
@@ -42,7 +42,7 @@ Add clientid:
 
 ```
 # Request
-POST api/v3/auth_clientid
+POST api/v4/auth_clientid
 {
     "clientid": "a_client_id",
     "password": "password"
@@ -58,7 +58,7 @@ Update password for a clientid:
 
 ```
 # Request
-PUT api/v3/auth_clientid/$CLIENTID
+PUT api/v4/auth_clientid/$CLIENTID
 
 {
     "password": "password"
@@ -74,7 +74,7 @@ Lookup a clientid info:
 
 ```
 # Request
-GET api/v3/auth_clientid/$CLIENTID
+GET api/v4/auth_clientid/$CLIENTID
 
 # Response
 {
@@ -90,7 +90,7 @@ Delete a clientid:
 
 ```
 # Request
-DELETE api/v3/auth_clientid/$CLIENTID
+DELETE api/v4/auth_clientid/$CLIENTID
 
 # Response
 {
