@@ -29,7 +29,7 @@
                       ]).
 
 -define(HOST, "http://127.0.0.1:8081/").
--define(API_VERSION, "v3").
+-define(API_VERSION, "v4").
 -define(BASE_PATH, "api").
 
 -define(CLIENTID,  <<"client_id_for_ct">>).
@@ -180,7 +180,7 @@ request_http_rest_delete(ClientId) ->
 uri() -> uri([]).
 uri(Parts) when is_list(Parts) ->
     NParts = [b2l(E) || E <- Parts],
-    %% http://127.0.0.1:8080/api/v3/auth_clientid/<P1>/<P2>/<Pn>
+    %% http://127.0.0.1:8080/api/v4/auth_clientid/<P1>/<P2>/<Pn>
     ?HOST ++ filename:join([?BASE_PATH, ?API_VERSION, "auth_clientid"| NParts]).
 
 %% @private
