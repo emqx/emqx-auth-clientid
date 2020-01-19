@@ -113,7 +113,7 @@ t_rest_api(_Config) ->
 
     {ok, _} = request_http_rest_add(?CLIENTID, ?PASSWORD),
     {ok, Result1} = request_http_rest_lookup(?CLIENTID),
-    [_, {<<"password">>, Hash}] = get_http_data(Result1),
+    #{<<"password">> := Hash} = get_http_data(Result1),
     [{_, ?CLIENTID, <<Salt:4/binary, Hash/binary>>}] = emqx_auth_clientid:lookup_clientid(?CLIENTID),
     ?assertEqual(Hash, emqx_passwd:hash(HashType, <<Salt/binary, ?PASSWORD/binary>>)),
 
@@ -166,11 +166,11 @@ request_http_rest_lookup(ClientId) ->
     request_api(get, uri([ClientId]), default_auth_header()).
 
 request_http_rest_add(ClientId, Password) ->
-    Params = [{<<"clientid">>, ClientId}, {<<"password">>, Password}],
+    Params = #{<<"clientid">> => ClientId, <<"password">> => Password},
     request_api(post, uri(), [], default_auth_header(), Params).
 
 request_http_rest_update(ClientId, Password) ->
-    Params = [{<<"password">>, Password}],
+    Params = #{<<"password">> => Password},
     request_api(put, uri([ClientId]), [], default_auth_header(), Params).
 
 request_http_rest_delete(ClientId) ->
