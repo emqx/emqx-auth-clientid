@@ -103,8 +103,8 @@ delete(#{clientid := ClientId}, _) ->
 %%------------------------------------------------------------------------------
 
 format([{?APP, ClientId, Password}]) ->
-    [{clientid, ClientId},
-     {password, emqx_auth_clientid:unwrap_salt(Password)}].
+    #{clientid => ClientId,
+      password => emqx_auth_clientid:unwrap_salt(Password)}.
 
 validate([], []) ->
     ok;
