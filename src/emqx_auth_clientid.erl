@@ -23,8 +23,6 @@
 %% CLI callbacks
 -export([cli/1]).
 
--export([is_enabled/0]).
-
 %% APIs
 -export([ add_clientid/2
         , update_password/2
@@ -51,27 +49,19 @@
 %%--------------------------------------------------------------------
 
 cli(["list"]) ->
-    if_enabled(fun() ->
-        ClientIds = mnesia:dirty_all_keys(?TAB),
-        [emqx_ctl:print("~s~n", [ClientId]) || ClientId <- ClientIds]
-    end);
+    ClientIds = mnesia:dirty_all_keys(?TAB),
+    [emqx_ctl:print("~s~n", [ClientId]) || ClientId <- ClientIds];
 
 cli(["add", ClientId, Password]) ->
-    if_enabled(fun() ->
-        Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
-        emqx_ctl:print("~p~n", [Ok])
-    end);
+    Ok = add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)),
+    emqx_ctl:print("~p~n", [Ok]);
 
 cli(["update", ClientId, NewPassword]) ->
-    if_enabled(fun() ->
-        Ok = update_password(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
-        emqx_ctl:print("~p~n", [Ok])
-    end);
+    Ok = update_password(iolist_to_binary(ClientId), iolist_to_binary(NewPassword)),
+    emqx_ctl:print("~p~n", [Ok]);
 
 cli(["del", ClientId]) ->
-    if_enabled(fun() ->
-        emqx_ctl:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))])
-    end);
+    emqx_ctl:print("~p~n", [remove_clientid(iolist_to_binary(ClientId))]);
 
 cli(_) ->
     emqx_ctl:usage([{"clientid list", "List ClientId"},
@@ -79,19 +69,9 @@ cli(_) ->
                     {"clientid update <Clientid> <NewPassword>", "Update Clientid"},
                     {"clientid del <ClientId>", "Delete ClientId"}]).
 
-if_enabled(Fun) ->
-    case is_enabled() of true -> Fun(); false -> hint() end.
-
-hint() ->
-    emqx_ctl:print("Please './bin/emqx_ctl plugins load emqx_auth_clientid' first.~n").
-
 %%--------------------------------------------------------------------
 %% API
 %%--------------------------------------------------------------------
-
-is_enabled() ->
-    lists:member(?TAB, mnesia:system_info(tables)).
-
 %% @doc Add clientid with password
 -spec(add_clientid(binary(), binary()) -> {atomic, ok} | {aborted, any()}).
 add_clientid(ClientId, Password) ->
@@ -145,7 +125,8 @@ ret({aborted, Error}) -> {error, Error}.
 init(DefaultIds) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
-            {attributes, record_info(fields, ?TAB)}]),
+            {attributes, record_info(fields, ?TAB)},
+            {storage_properties, [{ets, [{read_concurrency, true}]}]}]),
     lists:foreach(fun add_default_clientid/1, DefaultIds),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
