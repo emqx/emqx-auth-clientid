@@ -154,7 +154,7 @@ add_default_clientid({ClientId, Password}) ->
     add_clientid(iolist_to_binary(ClientId), iolist_to_binary(Password)).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ?AUTH_METRICS].
+    [emqx_metrics:ensure(MetricName) || MetricName <- ?AUTH_METRICS].
 
 check(#{clientid := ClientId, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, ClientId) of
