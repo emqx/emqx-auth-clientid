@@ -67,7 +67,10 @@ list(_Bindings, _Params) ->
     return({ok, emqx_auth_clientid:all_clientids()}).
 
 lookup(#{clientid := ClientId}, _Params) ->
-    return({ok, format(emqx_auth_clientid:lookup_clientid(ClientId))}).
+    case emqx_auth_clientid:lookup_clientid(ClientId) of
+        [] -> return({error, not_found});
+        Auth -> return({ok, format(Auth)})
+    end.
 
 add(_Bindings, Params) ->
     ClientId = get_value(<<"clientid">>, Params),
